@@ -96,12 +96,14 @@ Then, create an alias, and offer an IP:
  </br></br>
 
 Do a final check: 
+
 </br> </br>
    <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/88.png" align = "middle"  width="600" height = "95"></img>
    </br>
  </br></br>
 
 Don`t forget to bring the interface up: 
+
 </br> </br>
    <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/99.png" align = "middle"  width="600" height = "75"></img>
    </br>
@@ -111,6 +113,7 @@ Don`t forget to bring the interface up:
  
  </br></br>
 First, install Quagga: 
+
 </br><b>sudo apt-get install quagga</b> 
  </br></br>
 Modify the daemons under <b>
@@ -127,21 +130,23 @@ Restart Quagga:
    <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/101.png" align = "middle"  width="600" height = "75"></img>
    </br>
  </br></br>
-Now go to /usr/share/doc/quagga/ and look after <b>
-examples</b> folder. 
+Now go to /usr/share/doc/quagga/ and look after <b>examples</b> folder. 
 </br>
 Change to that directory, and for our case we will be needing only <b>zebra.conf.sample</b> and </b>ospfd.conf.sample</b>.
  </br></br>
 Copy these two files under <b>/etc/quagga</b>:
- </br>
+
+
  <b></br>
 cp /usr/share/doc/quagga/zebra.conf.sample /etc/quagga/
 </br>
 cp /user/share/doc/quagga/ospfd.conf.sample /etc/quagga/</b>
+
 </br> </br>
    <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/102.png" align = "middle"  width="600" height = "265"></img>
    </br>
  </br></br>
+
 Modify the files: 
 </br>
 You will have to add in ospfd.conf file the details of the future router 
@@ -151,7 +156,7 @@ You will have to add in ospfd.conf file the details of the future router
  </br></br>
 </br> Modify the zebra.conf file: 
 </br> </br>
-   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/104.png" align = "middle"  width="600" height = "95"></img>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/104.png" align = "middle"  width="600" height = "195"></img>
    </br>
  </br></br>
 
@@ -172,7 +177,7 @@ interfaces of a Linux system.
 </br>Restart quagga again. 
 
 </br> </br>
-   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/106.png" align = "middle"  width="600" height = "125"></img>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/106.png" align = "middle"  width="600" height = "95"></img>
    </br>
  </br></br>
 
@@ -183,7 +188,7 @@ interfaces of a Linux system.
  </br></br>
 Verify that the daemons are running: </br>
 </br> </br>
-   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/108.png" align = "middle"  width="600" height = "165"></img>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/108.png" align = "middle"  width="600" height = "95"></img>
    </br>
  </br></br>
 To configure OSPF routing process, connect via telnet: 
