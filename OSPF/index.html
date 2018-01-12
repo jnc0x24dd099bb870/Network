@@ -103,7 +103,7 @@ Do a final check:
 
 Don`t forget to bring the interface up: 
 </br> </br>
-   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/88.png" align = "middle"  width="600" height = "95"></img>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/99.png" align = "middle"  width="600" height = "95"></img>
    </br>
  </br></br>
 
@@ -117,12 +117,16 @@ Modify the daemons under <b>
 /etc/quagga/daemons</b>
  file, to their highest priority. 
 So, in our case, only ospfd and zebra will be set to “yes” 
-</br> //insert pic
-</br>
-</br>
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/100.png" align = "middle"  width="600" height = "495"></img>
+   </br>
+ </br></br>
+
 Restart Quagga: 
-</br>//insert pic
-</br>
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/101.png" align = "middle"  width="600" height = "95"></img>
+   </br>
+ </br></br>
 Now go to /usr/share/doc/quagga/ and look after <b>
 examples</b> folder. 
 </br>
@@ -134,16 +138,22 @@ Copy these two files under <b>/etc/quagga</b>:
 cp /usr/share/doc/quagga/zebra.conf.sample /etc/quagga/
 </br>
 cp /user/share/doc/quagga/ospfd.conf.sample /etc/quagga/
-</br></b>
-</br>//insert pic
-</br>
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/102.png" align = "middle"  width="600" height = "395"></img>
+   </br>
+ </br></br>
 Modify the files: 
 </br>
 You will have to add in ospfd.conf file the details of the future router 
-</br> //insert pic
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/103.png" align = "middle"  width="600" height = "395"></img>
+   </br>
+ </br></br>
 </br> Modify the zebra.conf file: 
-</br> //insert pic
-</br>
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/104.png" align = "middle"  width="600" height = "395"></img>
+   </br>
+ </br></br>
 
 
 </br>Change the files permissions: 
