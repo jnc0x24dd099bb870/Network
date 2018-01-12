@@ -439,7 +439,7 @@ Go with your cursor over the yellow cells - it will offer more details on that s
 </br>You can check OSPF packet code here:
  <a href="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/packet_raw.c" align="middle"> Wild packets everywhere! </a>  
  
-
+</br></br>
 Now that we have our routing process up and running, let’s see what we can do from here. 
  
 <br>Let’s check the traffic of router’s interface virt0:0 with the help of tcpdump tool
@@ -461,10 +461,10 @@ Now, let’s try to “sneak in” few tiny crafted packets and compare results.
 
 So, in first try, the router's virt0 interface with IP 192.168.122.121 is sending out a Hello packet 
 onto Multicast address ( <b>ospf-all.mcast.net</b>) for all adjacent routers. 
-</br></br> 
+</br>
 In second try,the router's virt0 interface with IP 1.1.1.1 is sending out a Hello packet onto 
 Multicast address for all adjacent routers. 
- </br></br> 
+ </br>
 As well mentioned in the IP Multicasting, in OSPF, the routers send a "hello" packet to an 
 assigned multicast address, which is <b>224.0.0.5 </b>
   </br></br> 
@@ -496,18 +496,19 @@ from:
 <b></br>
 </br>  BYTE ospf[24]={   0x02 ,0x01,\ </b>
 
-</br>                     ******snip******* 
+</br>                     *******snip*********
 
 </br> </br> to:     
  
 </br> </br>     <b>  BYTE ospf[24]={  0x01  , 0x01,\ </b>
  
 </br>                 
-</br>          *******snip********* 
+</br>           
  
  </br></br>
  
-...and a bit about the program 
+ 
+<i>...and a bit about the program </i>
   </br></br>
  
 The concept is based on  raw packets on device level. 
@@ -516,11 +517,10 @@ Packet sockets are used to receive or send raw packets at the device driver (OSI
 They allow the user to implement protocol modules in user space on top of the physical layer. 
   </br></br>
 Structure <b>sockaddr_ll</b>
-will be used since it represents a device <b> independent physical layer </b> address; also, structure <b>struct ifreq</b>  
-for
-low level access to Linux network devices 
+is used since it represents a device <b> independent physical layer </b> address; also, structure <b>struct ifreq</b>  
+is implemented for low level access to Linux network devices 
 </br></br>
 
-<i> See you next time! :) </i>
+<i> I guess, I shall see you next time, to  start assimilating more knowledge :) </i>
 </html>
 
