@@ -1,0 +1,385 @@
+
+
+
+<html>
+</br>
+<p><center><b><h3> OSPF Packets</b></h3></center></p>
+<p><center><i>...and how to turn Linux server into a Router</i></center></p>
+</i></br>
+
+
+
+Hi, there! </br>
+Welcome to my humble site.
+
+</br>I hope you have prepared good cookies, and a warm cup of coffee.
+
+This is my first tutorial on low level networking.
+</br></br>
+
+<br><i>You might be thinking why I started with OSPF - tbh, this is an old project, and since old school is best school, why not make a nice zine out of it, only with more details this time?! :)
+</br></br>
+Have no fear, we'll cover up in next zines the network programming from scratches (in C and assembler) on Linux OS, and then plus the game with a bit of Big Data. Consider this as an example of what you can do with a bit of knowledge.
+Hashtag "stuff to show off with." l3l!</i>
+</br></br>
+Shall we begin?
+</br></br>
+
+
+For this presentation, we will need a Kernel Virtual Machine (KVM).  
+This is the  full virtualization solution for Linux, and will make possible 
+ssh connections from physical machine to virtual machines. 
+</br>
+</br>
+As virtual environment, Ubuntu server (14.04 or 16.04 would do just fine) has been chosen to be set up as a router (IP 192.168.122.129).
+</br></br>
+
+Since we are not here to click nor to abuse the  CTRL C &V, we will manage manage all the virtual machines from KVM's command lines.
+
+From the core machine (the one on which the KVM is installed ­ in our case Ubuntu 14.04­), 
+check the status of the virtual machine: 
+ </br>//pic here
+ 
+</br></br> Log into  the Virtual Machine, and define a tty file in order to use it as a serial console. You will 
+have to write a script under <b>/etc/init/</b>
+ 
+</br></br>For this scenario, <b>tty0.conf</b> file
+was  created, with the following content: 
+ </br>//insert pic
+ 
+ </br></br>
+ 
+ Now, go back to the core machine, reload libvirt and restart the virtual machine by using, the below commands (with sudo rights): 
+</br>//inser pic
+
+ </br></br>
+ You should  be able to access the VM via ssh: 
+ </br> // insert pic
+ 
+ </br></br>
+ 
+ As a next step, towards the router set­up, I have decided to create a virtual ethernet interface, 
+that will represent the router’s interface. 
+ </br>
+ 
+ After the driver is loaded, create the dummy network interface: 
+ 
+ </br></br>
+ </br>//insert pic
+ </br>
+ 
+To create this interface work, we must load the dummy kernel module. 
+
+</br> // insert pic
+</br>
+Then, create an alias, and offer an IP: 
+
+</br> //insert pic
+</br>
+Do a final check: 
+</br> // insert pic
+</br>
+
+Don`t forget to bring the interface up: 
+</br> //insert pic
+</br></br>
+
+<b><i>Set up a Linux server as an ospf router</i></b> 
+ 
+ </br></br>
+First, install Quagga: 
+</br><b>sudo apt-get install quagga</b> 
+ </br></br>
+Modify the daemons under <b>
+/etc/quagga/daemons</b>
+ file, to their highest priority. 
+So, in our case, only ospfd and zebra will be set to “yes” 
+</br> //insert pic
+</br>
+</br>
+Restart Quagga: 
+</br>//insert pic
+</br>
+Now go to /usr/share/doc/quagga/ and look after <b>
+examples</b> folder. 
+</br>
+Change to that directory, and for our case we will be needing only <b>zebra.conf.sample</b> and </b>ospfd.conf.sample</b>.
+ </br></br>
+Copy these two files under <b>/etc/quagga</b>:
+ </br>
+ <b></br>
+cp /usr/share/doc/quagga/zebra.conf.sample /etc/quagga/
+</br>
+cp /user/share/doc/quagga/ospfd.conf.sample /etc/quagga/
+</br></b>
+</br>//insert pic
+</br>
+Modify the files: 
+</br>
+You will have to add in ospfd.conf file the details of the future router 
+</br> //insert pic
+</br> Modify the zebra.conf file: 
+</br> //insert pic
+</br>
+
+
+</br>Change the files permissions: 
+ 
+</br></br><b>chmod 770 /etc/quagga/zebra.conf 
+</br>chmod 770 /etc/quagga/ospfd.conf </b>
+</br></br> 
+ 
+Restart Quagga again: 
+</br> // insert pic
+</br></br>
+</br>Activate the IP forwarding, to make possible the transfer of packets between the network 
+interfaces of a Linux system. 
+</br>Restart quagga again. 
+
+</br> //insert pic
+
+</br>Check from /etc/services if the following entries are present: 
+</br>//insert pic
+Verify that the daemons are running: </br>
+</br>//insert pic </br>
+To configure OSPF routing process, connect via telnet: 
+</br>(Make sure telnet is enabled.)</br>
+</br>//insert pic
+
+</br></br> ...and now we are the happy owners of a fresh router ;-)
+
+<br></br><b>Briefly, on OSPF </b>
+</br></br>
+OSPF gathers link state information from available routers and constructs a topology map of the 
+network. The topology determines the routing table presented to the Internet Layer which makes 
+routing decisions based solely on the destination IP address found in IP packets. 
+</br> OSPF detects 
+changes in the topology, such as link failures, very quickly and converges on a new loop<b>free 
+routing structure within seconds. It computes the shortest path tree for each route using a 
+method based on Dijkstra’s algorithm</b> a shortest path first algorithm. 
+ 
+ 
+</br></br>OSPF encapsulates its routing messages directly on top of IP as its own protocol type. TCP 
+connections are not used. 
+</br>
+</br><b><i>Few things on IP Multicast</b></i>
+ </br></br>
+ 
+ 
+A typical multicast on an Ethernet network, using the TCP/IP protocol, consists of two parts: 
+Hardware/Ethernet multicast and IP Multicast.  
+ 
+ 
+With IP multicasting the hardware multicasting MAC   address is mapped to an IP Address.
+</br>Once Layer 2 (Datalink) picks the multicast   packet from the network (because it recognises it,   as the destination MAC address is a multicast) it   will strip the MAC addresses off and send the rest   to the above layer, which is   the   Network   Layer.   At   that   point,   the   Network   Layer   needs   to   be   able  
+to   understand   it's   dealing   with   a   multicast,   so   the   IP   address   is   set   in   a   way   that   allows   the  
+computer to see it as a multicast datagram.  
+ </br><br>
+Multicasts are used a lot between routers so they can discover each other on an IP network.
+</br>
+<a href="http://www.ciscopress.com/articles/article.asp?p=2294214"> An   Open   Shortest   Path   First   (OSPF)   router   sends   a   "hello"   packet   to   other   OSPF   routers   on   the  
+network.   The   OSPF   router   must   send   this   "hello"   packet   to   an   assigned   multicast   address,  
+which is  224.0.0.5 
+, and the other routers will respond. </a>
+
+</br></br></br>
+
+<b><i>Briefly, on OSPF Hello packets </b></i>
+
+</br></br> 
+Hello packet (OSPF Type 1 packet) is used for neighbors discovery, and sent periodically to a 
+multicast group to enable dynamic discovery of nighboring routers. 
+ </br></br>
+All routers connected to a common network must agree on certain parameters (Network mask, 
+HelloInterval and RouterDeadInterval). These parameters are included in Hello packets, so that 
+differences can inhibit the forming of neighbor relationships.
+
+</br></br><i> Below, the structure of an OSPF packet. 
+Go with your cursor over the yellow cells - it will offer more details on that specific field.</i>
+</br></br>
+<head>
+  <style type="text/css">
+    .mytable {
+      border-collapse: collapse;
+      width: 60%;
+      background-color: beige;
+      margin: 0 auto;
+    }
+    .mytable-head {
+      border: 1px solid black;
+      margin-bottom: 10;
+      padding-bottom: 0;
+     
+    }
+    .mytable-head td {
+      border: 1px solid blue;
+    }
+    
+  
+    
+    .mytable-body {
+      border: 1px solid blue;
+      
+    }
+    .mytable-body td {
+      border: 1px solid blue;
+      border-top: 0;
+    }
+
+    .mytable-footer {
+      border: 1px solid blue;
+      border-top: 10;
+      margin-top: 10;
+      padding-top: 0;
+    }
+    .mytable-footer td {
+      border: 1px solid blue;
+      border-top: 0;
+    }
+    
+        .mytable-footer td {
+      border: 1px solid blue;
+      border-top: 0;
+    }
+    
+    .content{
+    height:20px;
+    width:70px;
+    overflow:hidden;
+    text-overflow:ellipsis
+}
+.content:hover{
+    height:auto;
+    width:auto;
+
+}
+    
+  </style>
+</head>
+   
+ <table class="mytable mytable-head">
+    <tr>
+      <td  bgcolor="#DCDCDC" width="25%"><center>8 bit<center></td>
+      <td bgcolor="#DCDCDC" width="25%"><center>8 bit<center></td>
+      <td bgcolor="#DCDCDC" width="25%"><center>8 bit<center></td>
+      <td bgcolor="#DCDCDC" width="25%"><center>8 bit<center></td>
+      
+    </tr>
+  </table>
+  
+<body bgcolor="#000000" text="#00BFFF" link="#f0f0f0" vlink="#a0a0c0">
+  <table class="mytable mytable-body">
+    <tr>
+      <td width="25%"><center>Version #<center></td>
+      <td  bgcolor="yellow" width="25%"><div class="content"><span class="hidden"> <center>Type</center>
+</br>1: Hello(tests reachability)
+</br>2: Database Description
+</br>3: Link Status Request
+</br>4: Link Status Update
+</br>5: Link State Acknowledgement
+</span>
+</div>
+      <td width="50%"><center>Packet Length<center></td>
+    </tr>
+  </table>
+  
+    <table class="mytable mytable-body">
+    <tr>
+     
+      <td width="100%"><center>Router ID</center></td>
+    
+    </tr>
+  </table>
+  
+  <table class="mytable mytable-body">
+    <tr>
+      <td width="100%"><center>Area ID</center></td>
+    </tr>
+  </table>
+  
+    <table class="mytable mytable-body">
+    <tr>
+      <td width="50%"><center>Checksum</center></td>
+      <td  bgcolor="yellow" width="50%"><div class="content"><span class="hidden"> <center>AuthType</center>
+</br><i>Authentication Type</i>
+</br>0: no authentication
+</br>1: clear text password
+</br>2: MD5 checksum(added to end packet)
+</span>
+</div>
+</td>
+      
+    </tr>
+  </table>
+  
+  <table class="mytable mytable-body">
+    <tr>
+     <td bgcolor="yellow" width="100%"><div class="content"><span class="hidden"><center>Auth</center>
+<br/><i>Authentication password:</i>    
+<br/>1: 64 cleartext password
+
+<br/>2: 0x0000(16bits)
+<br/>2.1: KeyID(8bits)
+<br/>2.2: Length of MD5 checksum (8bits)
+<br/>2.3: Nondecreasing sequence number (32bit)</center>
+</span>
+</div>
+</td>
+    </tr>
+  </table>
+  
+    <table class="mytable mytable-body">
+    <tr>
+      <td bgcolor="yellow"  width="100%"><center>Auth<i>(same as above)</i></center></td>
+    </tr>
+  </table>
+  
+  
+      <table class="mytable mytable-body">
+    <tr>
+      <td width="100%"><center>Network Mask</center></td>
+    </tr>
+  </table>
+  
+  
+  <table class="mytable mytable-body">
+    <tr>
+     
+      <td width="50%"><center>Hello Interval</center></td>
+      <td width="25%"><center>Options</center></td>
+      <td width="25%"><center>Router Priorities</center></td>
+    
+    </tr>
+  </table>
+  
+    <table class="mytable mytable-body">
+    <tr>
+     
+      <td width="100%"><center>Router Dead Interval</center></td>
+     
+    </tr>
+  </table>
+  
+      <table class="mytable mytable-body">
+    <tr>
+     
+      <td width="100%"><center>Designated Router</center></td>
+     
+    </tr>
+  </table>
+  
+  <table class="mytable mytable-footer">
+    <tr class="spaceUnder">
+      <td width="100%"><center>Neighbour(s)</center></td>
+    </tr>
+  </table>
+  
+  
+ <br>
+ 
+And as you can see...</br>
+  
+  
+</body>
+</html>
+
