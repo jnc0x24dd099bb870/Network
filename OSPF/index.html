@@ -42,6 +42,7 @@ Have no fear, we'll cover up in next zines the network programming from scratche
 Consider this as an example of what you can do with a bit of knowledge. 
 Hashtag "stuff to show off with." l3l!</i> 
 
+	    
 
 Shall we begin? 
 
@@ -67,12 +68,10 @@ root@tron-X200A:~#virsh list</span>
 
 
 
-
 Log into the Virtual Machine, and define a tty file in order to use it 
 as a serial console. You will have to write a script under /etc/init/ 
 
 For this scenario, tty0.conf file was created, with the following content: 
-
 
 
 <span style="color:#FFCC00">#ttyS0 - getty
@@ -117,9 +116,8 @@ Welcome to Ubuntu 15.10(GNU/Linux 4.2.0-16-generic i686)</span>
 As a next step, towards the router set-up, I have decided to create a
 virtual ethernet interface, that will represent the router’s interface.
 
-
  
-To create this interface work, we must load the dummy kernel module. 
+To make this interface work, we must load the dummy kernel module. 
 
 <span style="color:#FFCC00">root@Rinzler:~#
 root@Rinzler:~# lsmod | grep dummy
@@ -240,8 +238,10 @@ line vty
 !
 root@Rinzler:/etc/quagga#</span>
 
+	    
 Modify the zebra.conf file, as well:
 
+	    
 <span style="color:#FFCC00">
 
 root@Rinzler:/etc/quagga#
@@ -373,10 +373,10 @@ in a way that allows the computer to see it as a multicast datagram.
 
 Multicasts are used a lot between routers so they can discover each other
 on an IP network. 
-An Open Shortest Path First (OSPF) router sends a "hello" packet to other
+<a href="http://www.ciscopress.com/articles/article.asp?p=2294214">An Open Shortest Path First (OSPF) router sends a "hello" packet to other
 OSPF routers on the network. The OSPF router must send this "hello" packet
-to an assigned multicast address, which is 224.0.0.5 , and the other
-routers will respond. 
+to an assigned multicast address, which is 224.0.0.5 , and the other 
+routers will respond.</a>
 
 
 
@@ -653,7 +653,7 @@ int create_socket(char*device)
 
 
 	strncpy(ifr.ifr_name, device, sizeof(ifr.ifr_name));
-	if(ioctl(packet_socket, SIOCGIFINDEX,&ifr)==­1)
+	if(ioctl(packet_socket, SIOCGIFINDEX,&ifr)==-1)
 		{
 		printf("ERR:ioctl failed for device:%s\n",device);
 		return FALSE;
@@ -662,7 +662,7 @@ int create_socket(char*device)
 		rawsll.sll_ifindex =ifr.ifr_ifindex;
 		rawsll.sll_protocol =htons(ETH_P_ALL);
 
-		if(bind(packet_socket, (struct sockaddr *) &rawsll, sizeof(sll))==­1)
+		if(bind(packet_socket, (struct sockaddr *) &rawsll, sizeof(sll))==-1)
 		{
 		printf("ERR:bind failed for device:%s\n",device);
 		return FALSE;
