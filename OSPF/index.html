@@ -427,10 +427,100 @@ Go with your cursor over the yellow cells - it will offer more details on that s
   
   
  <br>
- 
-And as you can see...</br>
   
   
 </body>
+</br></br>
+<b><i>Sending  OSPF Hello packets</i></b>
+ 
+
+</br></br>
+
+</br>You can check OSPF packet code here:
+ <a href="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/packet_raw.c" align="middle"> Wild packets everywhere! </a>  
+ 
+
+Now that we have our routing process up and running, let’s see what we can do from here. 
+ 
+<br>Let’s check the traffic of router’s interface virt0:0 with the help of tcpdump tool
+
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/111.png" align = "middle"  width="600" height = "195"></img>
+   </br>
+ </br></br>
+
+As you can see, we have captured four packets ­ the router's virt0 interface has 
+192.168.122.121 IP address and is sending out Hello packet onto multicast address for all 
+adjacent routers. 
+</br></br>
+Now, let’s try to “sneak in” few tiny crafted packets and compare results. 
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/112.png" align = "middle"  width="600" height = "465"></img>
+   </br>
+ </br></br>
+
+So, in first try, the router's virt0 interface with IP 192.168.122.121 is sending out a Hello packet 
+onto Multicast address ( <b>ospf-all.mcast.net</b>) for all adjacent routers. 
+</br></br> 
+In second try,the router's virt0 interface with IP 1.1.1.1 is sending out a Hello packet onto 
+Multicast address for all adjacent routers. 
+ </br></br> 
+As well mentioned in the IP Multicasting, in OSPF, the routers send a "hello" packet to an 
+assigned multicast address, which is <b>224.0.0.5 </b>
+  </br></br> 
+In our case,<b>ospf-all.mcast.net</b>
+is exactly 224.0.0.5 
+  </br></br> 
+This is implemented in our code at the packet structure: 
+  </br></br> 
+<b>p.ip.daddr      = inet_addr("0xE0000005"); </b>
+ </br></br> 
+ 
+ 
+ 
+All these details are captured with tcpdump tool, as you can see in the screenshot. 
+ 
+. </br></br>
+ 
+ 
+Now,  let’s change a bit the code, and obtain a packet of OSPF version 1. 
+
+</br> </br>
+   <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/OSPF/pics/113.png" align = "middle"  width="600" height = "385"></img>
+   </br>
+ </br></br>
+
+So, basically,in our code, just a very small modification had to be done 
+ 
+from: 
+<b></br>
+</br>  BYTE ospf[24]={   0x02 ,0x01,\ </b>
+
+</br>                     ******snip******* 
+
+</br> </br> to:     
+ 
+</br> </br>     <b>  BYTE ospf[24]={  0x01  , 0x01,\ </b>
+ 
+</br>                 
+</br>          *******snip********* 
+ 
+ </br></br>
+ 
+...and a bit about the program 
+  </br></br>
+ 
+The concept is based on  raw packets on device level. 
+  </br></br>
+Packet sockets are used to receive or send raw packets at the device driver (OSI Layer 2) level. 
+They allow the user to implement protocol modules in user space on top of the physical layer. 
+  </br></br>
+Structure <b>sockaddr_ll</b>
+will be used since it represents a device <b> independent physical layer </b> address; also, structure <b>struct ifreq</b>  
+for
+low level access to Linux network devices 
+</br></br>
+
+<i> See you next time! :) </i>
 </html>
 
