@@ -1,0 +1,396 @@
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+       
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.github.io/Network/">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>TCP Socket programming basics (I) </b></h3>--------------------------</p><p><i>...and how to build a port scanner</i></p>
+
+</i>
+
+
+Hi, there!
+
+
+
+    Already packed with delicious cookies &coffee, and ready to dive into networking? 
+Good, good! let the dark-side flow through you.
+
+I suppose you also have around a piece of old hardware running Linux on it.
+<i>Since I am a comfortable person, and I like to youtube like a pro, I am a big fan
+of Ubuntu. I put the apt in aptitude, l3l!.</i>
+
+I hope you are familiar with Docker containers and /proc filesystem, 
+(if not, links are provided at the ending of the zine for a nice and smooth beginning)
+
+
+
+&#060;&#060;-----Containers, containers, containers
+
+Trust me, Docker will make your life easier, and you can fool around with code without 
+harming your physical machine (well, not so often, at least xD )
+
+
+Arritee then! Let's install docker:
+
+<span style="color:#FFCC00">
+nullQ@tr0n:/home$ sudo apt-get install docker.io
+</span>
+
+easy, aye?!
+
+
+Create a folder somewhere, and write your first Dockerfile. 
+
+Add below content:
+
+<span style="color:#FFCC00">nullQ@tr0n:/home/test/waah$ cat Dockerfile 
+FROM ubuntu:14.04
+RUN apt-get update
+RUN  apt-get upgrade -y
+RUN  apt-get -y install gcc mono-mcs
+RUN  apt-get -y install libpcap0.8-dev
+COPY . /home
+WORKDIR /home
+RUN  gcc test.c -o test 
+EXPOSE 8667 8990 23423 </span>
+
+<i>So easy to understand.
+Yes, the C code is already compiled once the container is created.</i>
+
+Now, build the container (as root user):
+<span style="color:#FFCC00">
+root@tr0n:/home/test/waah# docker build -t ahaha .
+</span>
+Check if it has been created:
+<span style="color:#FFCC00">
+root@tr0n:/home/test/waah# docker images | sed -n '/ahaha/{;p}' 
+ahaha                          latest              6a15fd6b2030        About an hour ago   360 MB
+root@tr0n:/home/test/waah#
+</span>
+
+...now run it while opening just one port, get access to the container, 
+and list what's underb/home directory as a check
+
+<span style="color:#FFCC00">
+root@tr0n:/home/test/waah# docker run -p 8990:8990 -ti ahaha /bin/bash
+root@6a15fd6b2030:/home#
+root@6a15fd6b2030:/home# ls -ltr
+total 36
+-rw-r--r-- 1 root root 1287 Jan 11 02:27 test.c
+-rwxr-xr-x 1 root root 9256 Jan 11 02:27 test
+-rw-r--r-- 1 root root  218 Jan 12 22:22 Dockerfile
+</span>
+
+We'll leave this here, for a moment.
+
+[------from the physical host
+
+For now, let's focus on the physical machine, 
+and check if there's something running on port 8990:
+<span style="color:#FFCC00">
+root@tr0n:/home/test/waah# lsof -i :8990
+COMMAND     PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+docker-pr 17731 root    4u  IPv6 464043      0t0  TCP *:clc-build-daemon (LISTEN)
+</span>
+Let's find out more about this process:
+<span style="color:#FFCC00">
+root@tr0n:/home/test/waah# ls -ltr /proc/`lsof -i :8990 | awk ' FNR == 2 {print $2}'`/fd/
+total 0
+lrwx------ 1 root root 64 ian 13 00:28 9 -> socket:[24341]
+lr-x------ 1 root root 64 ian 13 00:28 8 -> net:[4026531957]
+lrwx------ 1 root root 64 ian 13 00:28 5 -> anon_inode:[eventpoll]
+lrwx------ 1 root root 64 ian 13 00:28 4 -> socket:[464043]
+l-wx------ 1 root root 64 ian 13 00:28 2 -> /dev/null
+lrwx------ 1 root root 64 ian 13 00:28 10 -> socket:[24342]
+l-wx------ 1 root root 64 ian 13 00:28 1 -> /dev/null
+lr-x------ 1 root root 64 ian 13 00:28 0 -> /dev/null
+root@tr0n:/home/test/waah#
+</span>
+
+It looks like socket with inode 464043 matches perfectly with 
+the column DEVICE from our previous lsof output.
+
+Curious about that 464043? Good, let's go deeper, and see what else
+we can find...
+
+<span style="color:#FFCC00">
+root@tr0n:/proc# grep -ri 464043 /proc/ 
+
+<font color="purple">/proc/net/tcp6</font>:   1: 00000000000000000000000000000000:231E
+00000000000000000000000000000000:0000 0A 00000000:00000000 00:00000000 00000000    
+0        0 464043 1 ffff90875fd07700 100 0 0 10 0
+</span>
+
+
+ /proc/net/tcp6 file providing decent (&hex'ed) information
+ about existent TCP connections.
+
+A part of the above output for 464043 inode can be understood as below:
+
+
+<i>Take [0000*] as 00000000000000000000000000000000 in below scheme:</i>
+<span style="color:#FFCC00">
+1:   [0000*]:231E  [0000*]:0000 0A 
+|       |      |      |    |     |-----> connection state
+|       |      |      |    |-----------> remote TCP port number
+|       |      |      |----------------> remote IPv6 address
+|       |      |-----------------------> local TCP port number
+|       |------------------------------> local IPv6 address
+|--------------------------------------> number of entry
+</span>
+
+
+If you convert 231E (from hex to decimal), you`ll get 8990 which is exactly
+the port on which our socket is listening (0A) 
+on address :: (00000000000000000000000000000000) 
+
+
+So, what is a socket, after all? - nothing more than a just <font color="red">a file</font> 
+
+
+<i>And how does that work us, from a server-client side point of view?</i>
+
+To use a socket, the server has to  invoke socket() - this will allow the socket to 
+exist in a name space, returning a socket descriptor
+(now you understand all that fuss about fd and inode?!)
+
+ The server then bind()'s the socket to be associated with its local address, and 
+keeps listen()'ing for incoming connections, eventually accept()'ing them.
+
+ A client also uses socket(), but only to have its socket connect()'ed 
+to a remote address, allowing the client to read()/write() from/to a server,
+send()/recv() to/from a server.
+
+
+As every logic human being out-there, I will not force you to cover all these notions
+in just one zine - instead, I`ll provide just enough details to
+create a port scanner.
+
+What do we have to do?
+
+1. Create a socket:
+
+   <span style="color:#a0a0a0">         
+       #include &#060;sys/socket.h>
+
+       int socky(int domain, int type, int protocol);</span>
+       
+<i> Useful example:</i>  
+
+      <span style="color:#FFCC00">  int socky;
+        socky = socket(AF_INET, SOCK_STREAM, 0);
+	    if(sockfd .small sign. 0)
+        {
+		perror("Error opening socket");
+	    }</span>
+    
+
+2. Know thy <b>structure sockaddr_in</b>
+
+ <span style="color:#a0a0a0">struct sockaddr_in {
+               sa_family_t    sin_family; /* address family: AF_INET */
+               in_port_t      sin_port;   /* port in network byte order */
+               struct in_addr sin_addr;   /* internet address */
+           };</span>
+           
+<i> Useful example:</i>
+
+<span style="color:#FFCC00">struct sockaddr_in serv_addr;
+   
+bzero((char *) &serv_addr, sizeof(serv_addr));
+serv_addr.sin_family=AF_INET;
+
+bcopy((char *)server->h_addr,(char *)&serv_addr.sin_addr.s_addr, 
+server->h_length);</span>
+        
+
+
+3) Try to connect() to every opened port
+
+  <span style="color:#a0a0a0">#include &#060;sys/socket.h>
+
+  int connect(int sockfd, const struct sockaddr *addr,
+                   socklen_t addrlen);</span>
+
+<i> Useful example:</i>
+
+	<span style="color:#FFCC00">serv_addr.sin_port=htons(portno);
+	if (connect(socky, (struct sockaddr *)&serv_addr, sizeof(serv_addr))&#060;0){
+		printf("Port is closed\n");
+	}else{
+		printf("port is active\n");
+	}</span>
+    
+    For a port scanner, loops come quite in handy at this stage ;-)
+    
+4)...and close() the socket:
+
+      <span style="color:#a0a0a0"> #include <unistd.h>
+       int close(int fd);</span>
+       
+<i> Useful example: </i>
+
+      <span style="color:#FFCC00">close(socky);</span>  
+
+
+How do we put all that together? Glad you've asked!
+This is the code that we will run inside the container:
+
+
+<span style="color:#FFCC00">#include&#060;stdio.h>
+/*
+ * container's test.c code, under /home directory
+ */
+ 
+#include&#060;stdlib.h>
+#include&#060;unistd.h>
+#include&#060;string.h>
+#include&#060;sys/types.h>
+#include&#060;sys/socket.h>
+#include&#060;netinet/in.h>
+#include&#060;netdb.h>
+
+
+int main(int argc, char *argv[])
+{
+	
+        struct hostent *host;
+        int err, i ,start , end;
+        char hostname[100];
+
+
+	int sockfd;
+	struct sockaddr_in serv_addr;
+	struct hostent *server;
+  
+          
+        printf("Provide hostname or IP : ");
+        gets(hostname);
+     
+         
+        printf("\nStart scanning process with port: ");
+        scanf("%d" , &start);
+     
+          
+        printf("\n...and end scanning process with port: ");
+        scanf("%d" , &end);
+
+	
+
+	server =gethostbyname(hostname);
+
+
+	if(server==NULL)
+         {
+		fprintf(stderr, "ERROR, no such host\n");
+		exit(0);	
+	 }
+
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family=AF_INET;
+	bcopy((char *)server->h_addr,
+		(char *)&serv_addr.sin_addr.s_addr,
+		server->h_length);
+
+        for( i = start ; i &#060;= end ; i++) 
+        {
+
+		serv_addr.sin_port=htons(i);
+		sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+		if(sockfd < 0)
+		{
+	 	   error("Error opening socket");
+	    	}
+	
+	 	 if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr))<0)
+                 {
+		   fflush(stdout);
+	         }
+
+                else{
+		      printf("%-5d open\n",  i);
+	            }
+        
+	        close(sockfd);
+	}
+	printf("\n");
+	return 0; 
+	
+}</span>
+
+&#060;&#060;----------- Back to container
+
+As we have previously noticed, the program is already compiled inside the container.
+<i> I like fast deployment, and I cannot lie</i>
+
+Anywayz, the tricky part with container for running this code is to find 
+the gateway IP (why do we provide the docker's gateway IP for the scanning program?
+this is homework for you!)
+
+<span style="color:#FFCC00">root@6a15fd6b2030:/home# netstat -rna | grep '^0\.0\.0\.0' | sed 's/[^ ]* *//;s/ .*//;q'
+172.17.0.1</span>
+
+Let's give it a go:
+
+<span style="color:#FFCC00">
+root@6a15fd6b2030:/home# ./test
+Provide hostname or IP : 172.17.0.1
+
+Start scanning process with port: 12
+
+...and end scanning process with port: 32555
+8990  open
+
+root@6a15fd6b2030:/home# 
+</span>
+
+Nice, working! 
+
+<i>......and what can we do from here on?! I guess we shall see next time, you knowledge junkie! 
+</i>
+
+=========================
+Until then, read a bit about socket material, and dockers.
+POSIX self-learning is always welcome, too!
+
+http://man7.org/linux/man-pages/man2/socket.2.html
+
+http://man7.org/linux/man-pages/man2/connect.2.html
+
+http://man7.org/linux/man-pages/man2/bind.2.html
+
+https://github.com/wsargent/docker-cheat-sheet
+
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
