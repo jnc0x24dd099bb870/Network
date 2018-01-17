@@ -1,1 +1,451 @@
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+       
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.github.io/Network/">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>Raw Ethernet Sockets</b></h3>--------------------------</p><p><i>...and how to send Ethernet framez</i></p>
+
+</i>
+
+
+
+Hey, there!
+
+
+Glad to have you back. 
+
+
+I suppose you read all the links I have provided in my last zine - I trust you completely 
+when you say that you didn't go to a big party / sleep too much, and instead you studied
+the OSI layers, and you can now explain how Ethernet and IP layers are glued
+together ... or even how to display an ARP table on a Linux machine.
+
+
+Good, good! It means your brain is now ready to be set on fire with more details 
+on (raw) sockets, new socket structure, &Ethernetz frames. 
+
+So hold on tight to your cookies and coffee, here we go again! 
+
+
+
+<i>So what are these Ethernet frames?</i>
+
+The term <b>frames</b> is (usually) used to describe Ethernet Layer 2 data units,
+then again, from time to time, certain people (me included), refers to them as
+packets (although, the correct term of <b>packets</b> is used to describe layer 3 IP data units, only!). 
+I guess it's a matter of laziness, with a pinch of sadistic taste.
+
+Anywayz, we will focus on the Ethernet II frame:
+
+<span style="color:#FFCC00">
+|------------14 bytes---------|------45-1500bytes----|-4bytes-|
+
++-------------+--------+------+----------------------+--------+
+| destination | source |      |                      |        |
+|             |        | type |       data           |   CRC  |
+|  address    | address|      |                      |        |
++-------------+--------+------+----------------------+--------+
+</span>
+
+
+, where Ethernet header:
+
+ethhr = dest_addr + source_addr + type, and can be represented by 
+a nice structure <a href="https://raw.githubusercontent.com/spotify/linux/master/include/linux/if_ether.h">struct ethhrd</a>:
+
+<span style="color:#a0a0a0">
+struct ethhdr {
+	unsigned char	h_dest[ETH_ALEN];	/* destination eth addr	*/
+	unsigned char	h_source[ETH_ALEN];	/* source ether addr	*/
+	__be16		h_proto;		/* packet type ID field	*/
+} __attribute__((packed));
+
+</span>
+
+
+<i> n.b: Ethernet packet/frame starts with a Preamble</i>
+
+
+
+[------------prepare the environment
+
+
+
+Good &loyal container coming to the rescue. We'll just keep the same docker image "ahaha"
+that we have created last time.
+
+Create a new container, and provide a different mac address:
+<span style="color:#FFCC00">
+
+nullQ@tr0n:/home/test/waah# docker run -ti --mac-address 02:42:ac:11:65:43 ahaha /bin/bash
+root@f8918abfeb55:/home# 
+root@f8918abfeb55:/home# 
+</span>
+
+Do some checks if the MAC has been changed accordingly:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# ifconfig eth0 | perl -lne '/(([a-z0-9]{2}:){5}..)/ && print $1'
+02:42:ac:11:65:43
+</span>
+... and if you ever have the time to read the kernel documentation for /sys/class/net:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# cat /sys/class/net/eth0/address
+02:42:ac:11:65:43
+</span>
+
+
+
+<i>What else do we need?</i> 
+
+Well... there's this awesome structure ifreq, that will come in handy,
+and you have to pay good attention to it:
+
+<span style="color:#a0a0a0">
+struct ifreq 
+{
+#define IFHWADDRLEN	6
+#define	IFNAMSIZ	16
+	union
+	{
+		char	ifrn_name[IFNAMSIZ];		/* if name, e.g. "en0" */
+	} ifr_ifrn;
+	
+	union {
+		struct	sockaddr ifru_addr;
+		struct	sockaddr ifru_dstaddr;
+		struct	sockaddr ifru_broadaddr;
+		struct	sockaddr ifru_netmask;
+		struct  sockaddr ifru_hwaddr;
+		short	ifru_flags;
+		int	ifru_ivalue;
+		int	ifru_mtu;
+		struct  ifmap ifru_map;
+		char	ifru_slave[IFNAMSIZ];	/* Just fits the size */
+		char	ifru_newname[IFNAMSIZ];
+		char *	ifru_data;
+	} ifr_ifru;
+};
+
+#define ifr_name	ifr_ifrn.ifrn_name	/* interface name 	*/
+#define ifr_hwaddr	ifr_ifru.ifru_hwaddr	/* MAC address 		*/
+#define	ifr_addr	ifr_ifru.ifru_addr	/* address		*/
+#define	ifr_dstaddr	ifr_ifru.ifru_dstaddr	/* other end of p-p lnk	*/
+#define	ifr_broadaddr	ifr_ifru.ifru_broadaddr	/* broadcast address	*/
+#define	ifr_netmask	ifr_ifru.ifru_netmask	/* interface net mask	*/
+#define	ifr_flags	ifr_ifru.ifru_flags	/* flags		*/
+#define	ifr_metric	ifr_ifru.ifru_ivalue	/* metric		*/
+#define	ifr_mtu		ifr_ifru.ifru_mtu	/* mtu			*/
+#define ifr_map		ifr_ifru.ifru_map	/* device map		*/
+#define ifr_slave	ifr_ifru.ifru_slave	/* slave device		*/
+#define	ifr_data	ifr_ifru.ifru_data	/* for use by interface	*/
+#define ifr_ifindex	ifr_ifru.ifru_ivalue	/* interface index	*/
+#define ifr_bandwidth	ifr_ifru.ifru_ivalue    /* link bandwidth	*/
+#define ifr_qlen	ifr_ifru.ifru_ivalue	/* Queue length 	*/
+#define ifr_newname	ifr_ifru.ifru_newname	/* New name		*/
+</span>
+
+
+Quite useful, isn't it?
+
+
+<i> What about those raw sockets, though?</i>
+
+<a href="http://man7.org/linux/man-pages/man7/raw.7.html">Raw sockets</a> will allow you to take control over the header &trailer information of
+the lower layers(Network layer and Transport layer of the OSI model), from the user space.
+
+<span style="color:#a0a0a0">
+       #include <sys/socket.h>
+       #include <netinet/in.h>
+       raw_socket = socket(AF_INET, SOCK_RAW, int protocol);  
+</span>       
+
+<i>Is this all?</i>
+
+Nah... 
+
+There's another awesome structure (a device-independent physical-layer address) that requires
+just as much attention as the previous one:
+
+<span style="color:#a0a0a0">
+      struct sockaddr_ll {
+               unsigned short sll_family;   /* Always AF_PACKET */
+               unsigned short sll_protocol; /* Physical-layer protocol */
+               int            sll_ifindex;  /* Interface number */
+               unsigned short sll_hatype;   /* ARP hardware type */
+               unsigned char  sll_pkttype;  /* Packet type */
+               unsigned char  sll_halen;    /* Length of address */
+               unsigned char  sll_addr[8];  /* Physical-layer address */
+           };
+
+</span>
+
+
+<i> How does that all work? </i>
+
+
+
+It works like a charm!
+
+
+
+<span style="color:#FFCC00">
+#include  &#060;arpa/inet.h>
+#include  &#060;signal.h>
+#include  &#060;linux/if_packet.h>
+#include  &#060;stdio.h>
+#include  &#060;string.h>
+#include  &#060;stdlib.h>
+#include  &#060;sys/ioctl.h>
+#include  &#060;sys/socket.h>
+#include  &#060;net/if.h>
+#include  &#060;netinet/ether.h>
+
+
+#define BUFF_SIZE       1514
+
+
+int main(int argc, char *argv[])
+{
+
+        int sockfd;
+        int j = 0;
+
+        unsigned char *intrf ="eth0";
+        unsigned short proto = 0x0806;
+
+        /*for logical and physical interface*/
+        
+        struct ifreq if_idx;
+        struct ifreq if_mac;
+
+        unsigned char dest[]
+           = { 0x02, 0x42, 0xac, 0x11, 0x65, 0x43 };
+
+        unsigned char payload[BUFF_SIZE];
+
+        struct ether_header *eh = (struct ether_header *) payload;
+
+        struct sockaddr_ll socket_address;
+
+        /* create raw socket & get interface name */
+
+        if ((sockfd = socket(PF_PACKET, SOCK_RAW, htons(proto))) == -1) {
+            perror("socket");
+        }
+
+        memset(&if_idx, 0, sizeof(struct ifreq));
+
+        strncpy(if_idx.ifr_name, intrf, IFNAMSIZ-1);
+
+        if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0)
+            perror("SIOCGIFINDEX");
+
+        /* Obtain MAC address */
+
+        memset(&if_mac, 0, sizeof(struct ifreq));
+
+        strncpy(if_mac.ifr_name, intrf, IFNAMSIZ-1);
+
+        if (ioctl(sockfd, SIOCGIFHWADDR, &if_mac) < 0)
+            perror("SIOCGIFHWADDR");
+
+        /*Ethernet header */
+
+        memset(payload, 0x0, sizeof(BUFF_SIZE));
+
+
+        /* Ethernet header */
+
+        /*destination address*/
+
+
+        /*source address*/
+
+        eh->ether_dhost[0] = dest[0];
+        eh->ether_dhost[1] = dest[1];
+        eh->ether_dhost[2] = dest[2];
+        eh->ether_dhost[3] = dest[3];
+        eh->ether_dhost[4] = dest[4];
+        eh->ether_dhost[5] = dest[5];
+
+        /* Type */
+
+        eh->ether_type = htons(proto);
+
+        j  += sizeof(struct ether_header);
+
+        /* payload  */
+
+
+        *(payload + j++) = 0x6e;
+        *(payload + j++) = 0x75;
+        *(payload + j++) = 0x6c;
+        *(payload + j++) = 0x6c;
+        *(payload + j++) = 0x51;
+        *(payload + j++) = 0x20;
+        *(payload + j++) = 0x77;
+        *(payload + j++) = 0x61;
+        *(payload + j++) = 0x73;
+        *(payload + j++) = 0x20;
+        *(payload + j++) = 0x68;
+        *(payload + j++) = 0x65;
+        *(payload + j++) = 0x72;
+        *(payload + j++) = 0x65;
+
+        /* prepare the socket */
+
+         socket_address.sll_halen = ETH_ALEN;
+         socket_address.sll_family = PF_PACKET;
+         socket_address.sll_ifindex =if_idx.ifr_ifindex;
+         socket_address.sll_hatype = ARPHRD_ETHER;
+         socket_address.sll_pkttype = PACKET_OTHERHOST;
+         socket_address.sll_halen = 0;
+         socket_address.sll_addr[6] = 0x00;
+         socket_address.sll_addr[7] = 0x00;
+
+         printf("...in yo interface interface : %02X:%02X:%02X:%02X:%02X:%02X ....\n",
+         eh->ether_dhost[0] = dest[0],
+         eh->ether_dhost[1] = dest[1],
+         eh->ether_dhost[2] = dest[2],
+         eh->ether_dhost[3] = dest[3],
+         eh->ether_dhost[4] = dest[4],
+         eh->ether_dhost[5] = dest[5]);
+
+
+        /* Ship it! */
+
+
+        if (sendto(sockfd, payload, j , 0, (struct sockaddr*)&socket_address, \
+        sizeof(struct sockaddr_ll)) < 0)
+            printf("Send failed\n");
+
+        return 0;
+}
+
+
+</span>
+
+[------------play with it!
+
+
+compile &run it as usual:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# gcc ether.c -o ether
+root@f8918abfeb55:/home# ./ether
+...sendiiiiiiiing packet to interface : 02:42:AC:11:65:43 ....
+root@f8918abfeb55:/home# 
+</span>
+
+Run the code from one terminal, and open the tcpdump inside the container, from a different
+terminal. 
+
+You should be able to obtain the output:
+ <span style="color:#FFCC00">
+root@f8918abfeb55:~# tcpdump -nei docker0 '(ether dst host 02:42:ac:11:65:43)'
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on docker0, link-type EN10MB (Ethernet), capture size 262144 bytes
+23:32:20.682134 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
+23:32:22.250577 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
+</span>
+
+<i>Can we send frames from host to container?</i>
+
+Why, yes... yes, we can. 
+
+
+check out my hw output, mah dudez!
+
+<span style="color:#FFCC00">
+root@tr0n:~# arp -n
+Address                   HWtype  HWaddress           Flags Mask            Iface
+172.84.13.00              ether   17:24:b4:d1:de:ea   C                     wlan0
+172.17.0.2                ether   02:42:ac:11:65:43   C                     docker0
+</span>
+
+Now, you only have to change the interface, from eth0, to docker0.
+
+
+Let's stop running the program as root, I`m bored:
+
+<span style="color:#FFCC00">
+nullQ@tr0n:/home/test/waah$ ls -ltr ahaha.sh 
+-rwxr-xr-x 1 nullQ nullQ 109 ian 16 20:49 ahaha.sh
+nullQ@tr0n:/home/test/waah$ more ahaha.sh 
+nullQ@tr0n:/home/test/waah$
+#!/bin/bash
+
+sudo setcap cap_net_raw=+ep ether
+/sbin/getcap ether
+./ether
+
+nullQ@tr0n:/home/test/waah$./ahaha.sh
+ether = cap_net_raw+ep
+...in yo interface : 02:42:AC:11:65:43 ....
+nullQ@tr0n:/home/test/waah$
+</span>
+
+The tcpdump output running inside container:
+<span style="color:#FFCC00">
+root@f8918abfeb55:~# tcpdump -nei docker0 '(ether dst host 02:42:ac:11:65:43)'
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on docker0, link-type EN10MB (Ethernet), capture size 262144 bytes
+23:32:20.682134 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
+23:32:22.250577 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
+23:42:22.250577 <b>17:24:b4:d1:de:ea</b> > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
+
+</span>
+
+Whoaa! Nice! 
+
+<i>Special thanks to <a href="https://gist.github.com/austinmarton/1922600">this hero</a> 
+for saving [me from countless hrs of hitting my head on the keyboard] my time! 
+Dat payload, bruh!</i>
+
+
+For now server-client architecture can wait a bit. 
+More stuff to check at lower layers of OSI... waht?! There'd still be sockets!
+
+===========================
+
+<i>You know what documentation to prepare... those OSI layers won't just get inside 
+your head (even if you ask them nicely)</i>
+
+
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
 
