@@ -387,7 +387,7 @@ Next, from the host, open a tcpdump session for docker0, and run the code inside
 root@tr0n~#  tcpdump -nei docker0 '(ether dst host 02:42:ac:11:65:43)'
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on docker0, link-type EN10MB (Ethernet), capture size 262144 bytes
-05:22:38.080182 00:00:e0:01:00:00 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+05:22:38.080182 <b>17:24:b4:d1:de:ea</b>  > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
 	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
 </span>
 
