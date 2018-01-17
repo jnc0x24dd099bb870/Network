@@ -363,12 +363,11 @@ terminal.
 
 You should be able to obtain the output:
  <span style="color:#FFCC00">
-root@f8918abfeb55:~# tcpdump -nei docker0 '(ether dst host 02:42:ac:11:65:43)'
-tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
-listening on docker0, link-type EN10MB (Ethernet), capture size 262144 bytes
-23:32:20.682134 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+root@f8918abfeb55:/home# tcpdump -v  -nei eth0 '(ether dst host 02:42:ac:11:65:43)'
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+23:56:35.626935 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
 	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
-23:32:22.250577 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+00:02:01.375307 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
 	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
 </span>
 
@@ -413,11 +412,13 @@ The tcpdump output running inside container:
 root@f8918abfeb55:~# tcpdump -nei docker0 '(ether dst host 02:42:ac:11:65:43)'
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
 listening on docker0, link-type EN10MB (Ethernet), capture size 262144 bytes
-23:32:20.682134 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+root@f8918abfeb55:/home# tcpdump -v  -nei eth0 '(ether dst host 02:42:ac:11:65:43)'
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+23:56:35.626935 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
 	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
-23:32:22.250577 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+00:02:01.375307 02:42:ac:11:65:43 > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
 	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
-23:42:22.250577 <b>17:24:b4:d1:de:ea</b> > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
+00:09:43.986389 <b>17:24:b4:d1:de:ea</b> > 02:42:ac:11:65:43, ethertype ARP (0x0806), length 28: [|ARP]
 	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
 
 </span>
