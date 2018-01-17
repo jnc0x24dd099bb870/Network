@@ -268,7 +268,7 @@ int main(int argc, char *argv[])
         if (ioctl(sockfd, SIOCGIFHWADDR, &if_mac) < 0)
             perror("SIOCGIFHWADDR");
 
-        /*Ethernet header */
+        
 
         memset(payload, 0x0, sizeof(BUFF_SIZE));
 
@@ -276,6 +276,9 @@ int main(int argc, char *argv[])
         /* Ethernet header */
 
         /*destination address*/
+	
+	 
+	 //down below, at the in yo interface printf
 
 
         /*source address*/
@@ -322,7 +325,7 @@ int main(int argc, char *argv[])
          socket_address.sll_addr[6] = 0x00;
          socket_address.sll_addr[7] = 0x00;
 
-         printf("...in yo interface interface : %02X:%02X:%02X:%02X:%02X:%02X ....\n",
+         printf("...in yo interface  : %02X:%02X:%02X:%02X:%02X:%02X ....\n",
          eh->ether_dhost[0] = dest[0],
          eh->ether_dhost[1] = dest[1],
          eh->ether_dhost[2] = dest[2],
@@ -351,7 +354,7 @@ compile &run it as usual:
 <span style="color:#FFCC00">
 root@f8918abfeb55:/home# gcc ether.c -o ether
 root@f8918abfeb55:/home# ./ether
-...sendiiiiiiiing packet to interface : 02:42:AC:11:65:43 ....
+...in yo interface : 02:42:AC:11:65:43 ....
 root@f8918abfeb55:/home# 
 </span>
 
