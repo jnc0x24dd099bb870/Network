@@ -173,8 +173,8 @@ Quite useful, isn't it?
 the lower layers(Network layer and Transport layer of the OSI model), from the user space.
 
 <span style="color:#a0a0a0">
-       #include <sys/socket.h>
-       #include <netinet/in.h>
+       #include &#060;sys/socket.h>
+       #include &#060;netinet/in.h>
        raw_socket = socket(AF_INET, SOCK_RAW, int protocol);  
 </span>       
 
@@ -201,23 +201,19 @@ just as much attention as the previous one:
 
 <i> How does that all work? </i>
 
-
-
 It works like a charm!
 
-
-
 <span style="color:#FFCC00">
-#include  <arpa/inet.h>
-#include  <signal.h>
-#include  <linux/if_packet.h>
-#include  <stdio.h>
-#include  <string.h>
-#include  <stdlib.h>
-#include  <sys/ioctl.h>
-#include  <sys/socket.h>
-#include  <net/if.h>
-#include  <netinet/ether.h>
+#include  &#060;arpa/inet.h>
+#include  &#060;signal.h>
+#include  &#060;linux/if_packet.h>
+#include  &#060;stdio.h>
+#include  &#060;string.h>
+#include  &#060;stdlib.h>
+#include  &#060;sys/ioctl.h>
+#include  &#060;sys/socket.h>
+#include  &#060;net/if.h>
+#include  &#060;netinet/ether.h>
 
 
 #define BUFF_SIZE       1514
