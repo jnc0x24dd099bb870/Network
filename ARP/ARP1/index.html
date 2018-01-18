@@ -208,16 +208,16 @@ It works like a charm!
 
 
 <span style="color:#FFCC00">
-#include  &#060;arpa/inet.h>
-#include  &#060;signal.h>
-#include  &#060;linux/if_packet.h>
-#include  &#060;stdio.h>
-#include  &#060;string.h>
-#include  &#060;stdlib.h>
-#include  &#060;sys/ioctl.h>
-#include  &#060;sys/socket.h>
-#include  &#060;net/if.h>
-#include  &#060;netinet/ether.h>
+#include  <arpa/inet.h>
+#include  <signal.h>
+#include  <linux/if_packet.h>
+#include  <stdio.h>
+#include  <string.h>
+#include  <stdlib.h>
+#include  <sys/ioctl.h>
+#include  <sys/socket.h>
+#include  <net/if.h>
+#include  <netinet/ether.h>
 
 
 #define BUFF_SIZE       1514
@@ -240,9 +240,9 @@ int main(int argc, char *argv[])
         unsigned char dest[]
            = { 0x02, 0x42, 0xac, 0x11, 0x65, 0x43 };
 
-        unsigned char payload[BUFF_SIZE];
+        unsigned char data[BUFF_SIZE];
 
-        struct ether_header *eh = (struct ether_header *) payload;
+        struct ether_header *eh = (struct ether_header *) data;
 
         struct sockaddr_ll socket_address;
 
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 
         
 
-        memset(payload, 0x0, sizeof(BUFF_SIZE));
+        memset(data, 0x0, sizeof(BUFF_SIZE));
 
 
         /* Ethernet header */
@@ -296,23 +296,23 @@ int main(int argc, char *argv[])
 
         j  += sizeof(struct ether_header);
 
-        /* payload  */
+        /* data  */
 
 
-        *(payload + j++) = 0x6e;
-        *(payload + j++) = 0x75;
-        *(payload + j++) = 0x6c;
-        *(payload + j++) = 0x6c;
-        *(payload + j++) = 0x51;
-        *(payload + j++) = 0x20;
-        *(payload + j++) = 0x77;
-        *(payload + j++) = 0x61;
-        *(payload + j++) = 0x73;
-        *(payload + j++) = 0x20;
-        *(payload + j++) = 0x68;
-        *(payload + j++) = 0x65;
-        *(payload + j++) = 0x72;
-        *(payload + j++) = 0x65;
+        *(data + j++) = 0x6e;
+        *(data + j++) = 0x75;
+        *(data + j++) = 0x6c;
+        *(data + j++) = 0x6c;
+        *(data + j++) = 0x51;
+        *(data + j++) = 0x20;
+        *(data + j++) = 0x77;
+        *(data + j++) = 0x61;
+        *(data + j++) = 0x73;
+        *(data + j++) = 0x20;
+        *(data + j++) = 0x68;
+        *(data + j++) = 0x65;
+        *(data + j++) = 0x72;
+        *(data + j++) = 0x65;
 
         /* prepare the socket */
 
@@ -337,13 +337,12 @@ int main(int argc, char *argv[])
         /* Ship it! */
 
 
-        if (sendto(sockfd, payload, j , 0, (struct sockaddr*)&socket_address, \
+        if (sendto(sockfd, data, j , 0, (struct sockaddr*)&socket_address, \
         sizeof(struct sockaddr_ll)) < 0)
             printf("Send failed\n");
 
         return 0;
 }
-
 
 </span>
 
