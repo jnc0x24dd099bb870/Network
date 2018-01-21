@@ -223,7 +223,7 @@ struct sock_fprog bpf = {
 };
 
 int main(){
-    int soc;
+    int socky;
     struct ifreq ifr;
     struct sockaddr_ll socket_ll;
     unsigned char buf[4096];
@@ -241,7 +241,7 @@ int main(){
     socket_ll.sll_ifindex = ifr.ifr_ifindex;
     bind(socky, (struct sockaddr *)&socket_ll, sizeof(socket_ll));
 
-    setsockopt(soc, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf));
+    setsockopt(socky, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf));
 
     while(1){
         ssize_t len = recv(soc, buf, sizeof(buf), 0);
