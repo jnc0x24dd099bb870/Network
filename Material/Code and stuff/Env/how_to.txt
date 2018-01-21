@@ -1,4 +1,6 @@
-Build and start container:
+1)  Create Dockerfile
+
+2) Build and start container:
 
 root@tr0n:/home/test/waah# docker build -t ahaha .
 
