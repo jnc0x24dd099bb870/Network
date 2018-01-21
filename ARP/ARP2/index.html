@@ -234,11 +234,12 @@ int main(){
     socky = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 
     strncpy(ifr.ifr_name, "eth0", IFNAMSIZ);
-    ioctl(soc, SIOCGIFINDEX, &ifr);
+    ioctl(socky, SIOCGIFINDEX, &ifr);
 
     socket_ll.sll_family = AF_PACKET;
     socket_ll.sll_protocol = htons(ETH_P_ALL);
     socket_ll.sll_ifindex = ifr.ifr_ifindex;
+	
     bind(socky, (struct sockaddr *)&socket_ll, sizeof(socket_ll));
 
     setsockopt(socky, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf));
