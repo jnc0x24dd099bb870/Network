@@ -1,0 +1,474 @@
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+       
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.github.io/Network/">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>Introduction to BPF (ARP)  </b></h3>--------------------------</p><p><i>...and Linux Socket Filtering</i></p>
+
+</i>
+
+
+Oh, hi!
+
+Welcome back! 
+
+
+We will be covering a small presentation on LSF and BPF, since these will 
+prove themselves very useful in the future.
+
+I suppose you have prepared our old container (you know, the one with docker 
+image "ahaha"), since we have to install <a href="https://github.com/cloudflare/bpftools">bpftools</a>
+
+(I suppose tcpdump is already installed on your container)
+
+[-------------------Prepare environment
+
+1) Install git:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# apt-get install git
+</span>
+and then, clone the tools repository
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# git clone https://github.com/cloudflare/bpftools
+</span>
+2) Go under bpftools/linux_tools/
+
+a) Install the necessary packages:
+<span style="color:#FFCC00">
+ apt-get install libreadline-dev 
+ apt-get install binutils-dev
+ apt-get install bison
+ apt-get install flex
+</span>
+b) Now, we are ready to build the executable programs:
+<span style="color:#FFCC00"> 
+root@f8918abfeb55:/home/bpftools/linux_tools# make
+</span>
+c) Check if executable files were generated:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home/bpftools/linux_tools# find . -type f -executable -print
+./bpf_jit_disasm
+./bpf_dbg
+./bpf_asm
+</span>
+
+We will use bpf_asm tool only, for generating the bytecodes
+
+[--------------BPF cramming
+
+BPF allows a user-space program to attach a filter onto any socket and
+allow/disallow certain types of data to come through the socket.
+
+The BPF instruction set includes most arithmetic operations, loads and
+stores, and forward jumps ( no backward jumps allowed, in order to allow 
+filter programs to terminate):
+
+<span style="color:#a0a0a0">
+  Instruction      Addressing mode      Description
+
+  ld               1, 2, 3, 4, 10       Load word into A
+  ldi              4                    Load word into A
+  ldh              1, 2                 Load half-word into A
+  ldb              1, 2                 Load byte into A
+  ldx              3, 4, 5, 10          Load word into X
+  ldxi             4                    Load word into X
+  ldxb             5                    Load byte into X
+
+  st               3                    Store A into M[]
+  stx              3                    Store X into M[]
+
+  jmp              6                    Jump to label
+  ja               6                    Jump to label
+  jeq              7, 8                 Jump on A == k
+  jneq             8                    Jump on A != k
+  jne              8                    Jump on A != k
+  jlt              8                    Jump on A <  k
+  jle              8                    Jump on A <= k
+  jgt              7, 8                 Jump on A >  k
+  jge              7, 8                 Jump on A >= k
+  jset             7, 8                 Jump on A &  k
+
+  add              0, 4                 A + <x>
+  sub              0, 4                 A - <x>
+  mul              0, 4                 A * <x>
+  div              0, 4                 A / <x>
+  mod              0, 4                 A % <x>
+  neg                                   !A
+  and              0, 4                 A & <x>
+  or               0, 4                 A | <x>
+  xor              0, 4                 A ^ <x>
+  lsh              0, 4                 A << <x>
+  rsh              0, 4                 A >> <x>
+
+  tax                                   Copy A into X
+  txa                                   Copy X into A
+
+  ret              4, 9                 Return
+</span>
+
+Example of <a href="http://manpages.ubuntu.com/manpages/zesty/man8/bpfc.8.html">low level BPF</a> for ARP filtering
+<span style="color:#FFCC00">
+  ldh [12]
+  jne #0x806, drop
+  ret #-1
+  drop: ret #0
+</span>
+
+<i>How to use it, then?</i>
+
+... take a deep breath, yes, that's right,  two new structures:
+
+<span style="color:#a0a0a0">
+#include <linux/filter.h> 
+
+struct sock_filter {	/* Filter block */
+	__u16	code;   /* Actual filter code */
+	__u8	jt;	/* Jump true */
+	__u8	jf;	/* Jump false */
+	__u32	k;      /* Generic multiuse field */
+};
+</span> 
+
+
+...and
+<span style="color:#a0a0a0">
+#include <linux/filter.h> 
+struct sock_fprog {			/* Required for SO_ATTACH_FILTER. */
+	unsigned short		   len;	/* Number of filter blocks */
+	struct sock_filter __user *filter;
+};
+</span>
+
+
+[-------------------Generate the bytecodes.
+
+Create a file for the ARP filtering - I put everything under ether.txt:
+<span style="color:#a0a0a0">
+  ldh [12]
+  jne #0x806, drop
+  ret #-1
+  drop: ret #0
+</span>
+
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# bpftools/linux_tools/bpf_asm ether.txt
+4,40 0 0 12,21 0 1 2054,6 0 0 4294967295,6 0 0 0,
+root@f8918abfeb55:/home# bpftools/linux_tools/bpf_asm -c ether.txt
+{ 0x28,  0,  0, 0x0000000c },
+{ 0x15,  0,  1, 0x00000806 },
+{ 0x06,  0,  0, 0xffffffff },
+{ 0x06,  0,  0, 0000000000 },
+</span>
+
+
+
+<i> Can I haz example? </i>
+
+<span style="color:#FFCC00">
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <arpa/inet.h>
+#include <linux/if_ether.h>
+#include <netpacket/packet.h>
+#include <net/if.h>
+#include <linux/filter.h>
+#include <linux/kernel.h>
+#include<string.h>
+
+struct sock_filter code[] = {
+{ 0x28,  0,  0, 0x0000000c },
+{ 0x15,  0,  1, 0x00000806 },
+{ 0x06,  0,  0, 0xffffffff },
+{ 0x06,  0,  0, 0000000000 },
+
+};
+
+struct sock_fprog bpf = {
+    .len = sizeof(code)/sizeof(code[0]),
+    .filter = code,
+};
+
+int main(){
+    int soc;
+    struct ifreq ifr;
+    struct sockaddr_ll socket_ll;
+    unsigned char buf[4096];
+
+    memset(&ifr, 0, sizeof(ifr));
+    memset(&socket_ll, 0, sizeof(socket_ll));
+
+    socky = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+
+    strncpy(ifr.ifr_name, "eth0", IFNAMSIZ);
+    ioctl(soc, SIOCGIFINDEX, &ifr);
+
+    socket_ll.sll_family = AF_PACKET;
+    socket_ll.sll_protocol = htons(ETH_P_ALL);
+    socket_ll.sll_ifindex = ifr.ifr_ifindex;
+    bind(socky, (struct sockaddr *)&socket_ll, sizeof(socket_ll));
+
+    setsockopt(soc, SOL_SOCKET, SO_ATTACH_FILTER, &bpf, sizeof(bpf));
+
+    while(1){
+        ssize_t len = recv(soc, buf, sizeof(buf), 0);
+        struct ethhdr* ethhdr = (struct ethhdr*)buf;
+        int proto = ntohs(ethhdr->h_proto);
+        if(len <= 0 ) break;
+
+        printf("packet len: %3ld \nprotocol: 0x0%0x %s\n", len, proto, 
+              proto==ETH_P_ARP ? "[ARP]" : "other");
+    }
+    return 0;
+}
+
+</span>
+
+
+Compile and run:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# gcc filterz.c -o filterz
+root@f8918abfeb55:/home# ./filterz
+</span>
+<i>....it will wait to capture arp packets only...</i>
+
+
+Open another terminal for a new container session, and prepare to re-run
+the ethernet frames code (from our last zine, named ether.c):
+<span style="color:#FFCC00">
+root@tr0n:~# docker exec -ti f8918abfeb55 /bin/bash
+root@f8918abfeb55:/home#
+</span>
+Let's send a packet
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home#./ether
+</span>
+
+By now, you should have captured, in the terminal where filterz program
+is running, the below result:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# ./filterz
+packet len:  28 
+protocol: 0x0806 [ARP]
+</span>
+
+<i> Is this used anywhere?! </i>
+
+Once BPF proved itself, it was just a matter of time before it would take
+over the network world, and be used for creating tools like libpcap or
+tcpdump.
+
+Let's practice a bit on tcpdump; since it's based on bpf, we should easily obtain the bytecodes for our arp scenario:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump  -d arp
+(000) ldh      [12]
+(001) jeq      #0x806           jt 2	jf 3
+(002) ret      #262144
+(003) ret      #0
+</span>
+
+...oh, it looks familar xD
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump  -dd arp
+{ 0x28, 0, 0, 0x0000000c },
+{ 0x15, 0, 1, 0x00000806 },
+{ 0x6, 0, 0, 0x00040000 },
+{ 0x6, 0, 0, 0x00000000 },
+</span>
+...not a stranger anymore
+
+Feelin' lucky?! Let's add one more d:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump  -ddd  arp
+4
+40 0 0 12
+21 0 1 2054
+6 0 0 262144
+6 0 0 0
+</span>
+
+Hmm...you have that feelin` you had seen it somewhere, right?
+
+Well, let's make it look more presentable:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump -p -ni eth0 -ddd "arp" |tr "\n" ","  && echo " "
+4,40 0 0 12,21 0 1 2054,6 0 0 262144,6 0 0 0, 
+</span>
+
+Your instincts were on point! 
+
+<i> Oh, so we can write filters using tcpdump only?! </i>
+
+If you don't want to write assembler look-alike syntax,that's a big
+"yup!"
+
+<i>...and how we can do this?</i>
+Oh, you so curious!
+
+Let's say I want a filter based just on the protocol (2054 is decimal for
+0x0806):
+
+<i> Everytime you write a tcpdump command, for testing it, send the
+ethernet frame </i> 
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054"
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+00:58:38.721131 [|ARP]
+	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
+</span>
+
+
+Now, let's explain this <b> ether[12:2]</b> - it takes the next 2 bytes
+after the first 12 bytes - which is exactly the type (0x0806).
+
+
+<b><i>Reminder on the Ethernet Header:
+
+6 bytes - destination address
+6 bytes - source address
+2 bytes - the type </i></b>
+
+<i> ... and what else? </i>
+
+We can also add a limit on packet's length. We already know that the packet we crafted last time is 28bytes long.
+
+
+Try to run this tcpdump line, for packets bigger than 100 bytes:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 100
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+^C
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+</span>
+
+
+
+As you can see, nothing was captured...
+(keep sending that Ethernet Frame, tho! Perseverance will pay off one day!)
+
+
+Now, let's try with a value closer to our packet's length:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 20
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+01:11:07.250230 [|ARP]
+	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
+</span>
+
+
+Marvellous I say!
+
+And let's re-apply the Triple D!
+
+root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 20 -d 
+(000) ldh      [12]
+(001) jeq      #0x806           jt 2	jf 5
+(002) ld       #pktlen
+(003) jge      #0x14            jt 4	jf 5
+(004) ret      #262144
+(005) ret      #0
+root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 20 -dd
+{ 0x28, 0, 0, 0x0000000c },
+{ 0x15, 0, 3, 0x00000806 },
+{ 0x80, 0, 0, 0x00000000 },
+{ 0x35, 0, 1, 0x00000014 },
+{ 0x6, 0, 0, 0x00040000 },
+{ 0x6, 0, 0, 0x00000000 },
+root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 20 -ddd
+6
+40 0 0 12
+21 0 3 2054
+128 0 0 0
+53 0 1 20
+6 0 0 262144
+6 0 0 0
+
+... and the final form:
+
+root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 20 -ddd |tr "\n" ","  && echo " "
+6,40 0 0 12,21 0 3 2054,128 0 0 0,53 0 1 20,6 0 0 262144,6 0 0 0, 
+root@f8918abfeb55:/home#
+
+
+<i>So, we add that in a piece of code or something?</i>
+
+Yes, the "-dd", as in previous example, yes you can apply it in a piece of code.
+
+..or you can simply use the output from "-ddd"  with iptables:
+
+iptables -A INPUT \ 
+    -m bpf --bytecode "6,40 0 0 12,21 0 3 2054,128 0 0 0,53 0 1 20,6 0 0 262144,6 0 0 0," \
+    -j DROP
+
+<i>For aesthetics reasons, probably a --mac-source would be nice, too ... overall tho', looking good.</i>
+
+It will inform your firewall:
+"Hey, man! Like a smooth and strong bodyguard that you are, allow ARP
+packets only,the 0x0806 kewl type; and they gotta be at least this long 
+- 20bytes- to get into the nerdz club! No minors allowed!"
+
+
+
+Pretty neat, aye?!
+
+
+I hope you enjoyed this zine. Once we will hit the IP header, 
+we will be able to play more with BPF and tcpdump.
+
+
+enjoy yer week-end!
+
+===========================
+
+<i>Better be reading</i>
+
+
+https://www.kernel.org/doc/Documentation/networking/filter.txt
+
+http://man7.org/linux/man-pages/man2/seccomp.2.html
+
+
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
