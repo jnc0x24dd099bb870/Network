@@ -166,7 +166,7 @@ struct sock_fprog {			/* Required for SO_ATTACH_FILTER. */
 </span>
 
 
-[-------------------Generate the bytecodes.
+[-------------------Lend me some bytecodes!
 	
 
 Create a file for the ARP filtering - I put everything under ether.txt:
@@ -390,7 +390,7 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 </span>
 
 
-As you can see, nothing was captured...
+As expected, nothing was captured... 
 (keep sending that Ethernet Frame, tho! Perseverance will pay off one day!)
 
 
@@ -403,8 +403,10 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 	0x0000:  6e75 6c6c 5120 7761 7320 6865 7265       nullQ.was.here
 </span>
 
+	
 
-Marvellous I say!
+Marvellous, I say!
+	
 
 And let's re-apply the Triple D!
 <span style="color:#FFCC00">
@@ -438,10 +440,11 @@ root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 20
 root@f8918abfeb55:/home#
 	</span>
 
+	
 <i>So, we add that in a piece of code or something?</i>
 
 	
-Yes, the "-dd",  yes you can apply it in a piece of code (as per previous code example)
+Yes, the "-dd",  you can apply it in a piece of code (as per previous code example)
 
 	
 ..or you can simply use the output from "-ddd"  with iptables:
@@ -452,13 +455,14 @@ iptables -A INPUT \
     -j DROP
 	</span>
 	
-<i>For aesthetics reasons, 
-	probably a --mac-source would be nice, too ... overall tho', looking good.</i>
+<i>For aesthetic reasons,  
+a --mac-source options would be nice (&others), too ... overall tho', looking good. 
+In an utopian world it would work nicely, then again, this is merely an iptables example!</i>
 
-That rule will inform your firewall:
-"Hey, man! Like a smooth and strong bodyguard that you are, allow ARP packets only,
-the 0x0806 kewl type; and they gotta be at least this long - 20bytes- to get into 
-the nerdz club! No minors allowed!"
+	
+That rule will inform your firewall: "Hey, man! Like a smooth and strong bodyguard that you are, 
+allow ARP packets only, the 0x0806 kewl type; and they gotta be at least this long - 20bytes-
+to get into the nerdz club! No minors allowed!"
 
 
 	
