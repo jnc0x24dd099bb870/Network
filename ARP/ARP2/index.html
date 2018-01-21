@@ -331,21 +331,23 @@ root@f8918abfeb55:/home# tcpdump -p -ni eth0 -ddd "arp" |tr "\n" ","  && echo " 
 4,40 0 0 12,21 0 1 2054,6 0 0 262144,6 0 0 0, 
 </span>
 
+	
 Your instincts were on point! 
 
+	
 <i> Oh, so we can write filters using tcpdump only?! </i>
 
-If you don't want to write assembler look-alike syntax,that's a big
-"yup!"
+If you don't want to write assembler look-alike syntax,that's a big "yup!"
 
+	
 <i>...and how we can do this?</i>
+	
 Oh, you so curious!
 
-Let's say I want a filter based just on the protocol (2054 is decimal for
-0x0806):
+Let's say I want a filter based just on the protocol (2054 is decimal for 0x0806):
 
-<i> Everytime you write a tcpdump command, for testing it, send the
-ethernet frame </i> 
+<i> Do not forget - for testing below tcpdump commands, send the ethernet frame </i> 
+	
 <span style="color:#FFCC00">
 root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054"
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
@@ -355,11 +357,10 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 </span>
 
 
-Now, let's explain this <b> ether[12:2]</b> - it takes the next 2 bytes
+Let`s explain this <b> ether[12:2]</b> - it takes the next 2 bytes
 after the first 12 bytes - which is exactly the Type (0x0806).
 
 <b><i>Reminder on the Ethernet Header:
-
 6 bytes - destination address
 6 bytes - source address
 2 bytes - the type </i></b>
@@ -368,7 +369,7 @@ after the first 12 bytes - which is exactly the Type (0x0806).
 <i> ... and what else? </i>
 
 We can also add a limit on packet's length.
-We already know that the packet we crafted last time is 28bytes long.
+We already know that the ethernet frame we crafted last time is 28bytes long.
 
 Try to run this tcpdump line, for packets bigger than 100 bytes:
 <span style="color:#FFCC00">
@@ -386,7 +387,7 @@ As you can see, nothing was captured...
 (keep sending that Ethernet Frame, tho! Perseverance will pay off one day!)
 
 
-Now, let's try with a value closer to our packet's length:
+Now, let's try with a value closer to our frame/packet's length:
 <span style="color:#FFCC00">
 root@f8918abfeb55:/home# tcpdump -p -ni eth0  "ether[12:2]==2054" and greater 20
 tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
@@ -432,20 +433,25 @@ root@f8918abfeb55:/home#
 
 <i>So, we add that in a piece of code or something?</i>
 
+	
 Yes, the "-dd",  yes you can apply it in a piece of code (as per previous code example)
 
+	
 ..or you can simply use the output from "-ddd"  with iptables:
+	
 <span style="color:#FFCC00">
 iptables -A INPUT \ 
     -m bpf --bytecode "6,40 0 0 12,21 0 3 2054,128 0 0 0,53 0 1 20,6 0 0 262144,6 0 0 0," \
     -j DROP
 	</span>
-<i>For aesthetics reasons, probably a --mac-source would be nice, too ... overall tho', looking good.</i>
+	
+<i>For aesthetics reasons, 
+	probably a --mac-source would be nice, too ... overall tho', looking good.</i>
 
-It will inform your firewall:
-"Hey, man! Like a smooth and strong bodyguard that you are, allow ARP
-packets only,the 0x0806 kewl type; and they gotta be at least this long 
-- 20bytes- to get into the nerdz club! No minors allowed!"
+That rule will inform your firewall:
+"Hey, man! Like a smooth and strong bodyguard that you are, allow ARP packets only,
+the 0x0806 kewl type; and they gotta be at least this long - 20bytes- to get into 
+the nerdz club! No minors allowed!"
 
 
 Pretty kewl, aye?!
