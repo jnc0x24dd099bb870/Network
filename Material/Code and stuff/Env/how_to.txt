@@ -12,3 +12,6 @@ total 36
 -rw-r--r-- 1 root root 1287 Jan 11 02:27 test.c
 -rwxr-xr-x 1 root root 9256 Jan 11 02:27 test
 -rw-r--r-- 1 root root  218 Jan 12 22:22 Dockerfile
+
+
+Check link https://jnc0x24dd099bb870.github.io/Network/TCP4/Sock1/index.html for more details
