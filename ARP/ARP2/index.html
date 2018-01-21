@@ -22,7 +22,7 @@
     <td>
 
 <pre>
-<p>--------------------------<b><h3>Introduction to BPF (ARP)  </b></h3>--------------------------</p><p><i>...and Linux Socket Filtering</i></p>
+<p>--------------------------<b><h3>Introduction to BPF (ARP)  </b></h3>--------------------------</p><p><i>...or Linux Socket Filtering</i></p>
 
 </i>
 
@@ -81,12 +81,18 @@ We will use bpf_asm tool only, for generating the bytecodes
 
 [--------------BPF cramming
 
-BPF allows a user-space program to attach a filter onto any socket and
-allow/disallow certain types of data to come through the socket.
+Berkeley Packet Filter (BPF) allows a user-space program to attach a filter onto any socket
+and allow/disallow certain types of data to come through the socket. 
 
-The BPF instruction set includes most arithmetic operations, loads and
-stores, and forward jumps ( no backward jumps allowed, in order to allow 
-filter programs to terminate):
+Linux Socket Filtering(LSF) is just a derived of BPF (almost identical twins!)
+Just as BPF, it supports filtering packets,  allowing to a user-space process to be picky about 
+what packets to be received.	    
+	    
+This pickiness of BPF/LSF is possible thanks to the instructions of a low level asm-like 
+filter language.
+	    
+The BPF instruction set includes most arithmetic operations, loads and stores, and forward jumps 
+( no backward jumps allowed, in order to allow  filter programs to terminate):
 
 <span style="color:#a0a0a0">
   Instruction      Addressing mode      Description
@@ -493,7 +499,7 @@ https://linux.die.net/man/2/setsockopt
 	
 http://man7.org/linux/man-pages/man2/seccomp.2.html
 
-
+http://leonerds-code.blogspot.ro/2010/05/pfpacket-linux-socket-filters-and-ipv6.html
 
 -------EOF---------
 
