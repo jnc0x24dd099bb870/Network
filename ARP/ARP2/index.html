@@ -126,7 +126,7 @@ filter programs to terminate):
 </span>
 
 Example of <a href="http://manpages.ubuntu.com/manpages/zesty/man8/bpfc.8.html">low level BPF</a> for ARP filtering
-<span style="color:#FFCC00">
+<span style="color:#a0a0a0">
   ldh [12]
   jne #0x806, drop
   ret #-1
@@ -138,7 +138,7 @@ Example of <a href="http://manpages.ubuntu.com/manpages/zesty/man8/bpfc.8.html">
 ... take a deep breath, yes, that's right,  two new structures:
 
 <span style="color:#a0a0a0">
-#include <linux/filter.h> 
+
 
 struct sock_filter {	/* Filter block */
 	__u16	code;   /* Actual filter code */
@@ -151,7 +151,7 @@ struct sock_filter {	/* Filter block */
 
 ...and
 <span style="color:#a0a0a0">
-#include <linux/filter.h> 
+	
 struct sock_fprog {			/* Required for SO_ATTACH_FILTER. */
 	unsigned short		   len;	/* Number of filter blocks */
 	struct sock_filter __user *filter;
@@ -162,7 +162,8 @@ struct sock_fprog {			/* Required for SO_ATTACH_FILTER. */
 [-------------------Generate the bytecodes.
 
 Create a file for the ARP filtering - I put everything under ether.txt:
-<span style="color:#a0a0a0">
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home#more ether.txt
   ldh [12]
   jne #0x806, drop
   ret #-1
@@ -173,6 +174,10 @@ Create a file for the ARP filtering - I put everything under ether.txt:
 <span style="color:#FFCC00">
 root@f8918abfeb55:/home# bpftools/linux_tools/bpf_asm ether.txt
 4,40 0 0 12,21 0 1 2054,6 0 0 4294967295,6 0 0 0,
+	</span>
+	
+We will use below output for our example:
+<span style="color:#FFCC00">	
 root@f8918abfeb55:/home# bpftools/linux_tools/bpf_asm -c ether.txt
 { 0x28,  0,  0, 0x0000000c },
 { 0x15,  0,  1, 0x00000806 },
@@ -182,20 +187,21 @@ root@f8918abfeb55:/home# bpftools/linux_tools/bpf_asm -c ether.txt
 
 
 
+
 <i> Can I haz example? </i>
 
 <span style="color:#FFCC00">
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/ioctl.h>
-#include <arpa/inet.h>
-#include <linux/if_ether.h>
-#include <netpacket/packet.h>
-#include <net/if.h>
-#include <linux/filter.h>
-#include <linux/kernel.h>
-#include<string.h>
+#include&#060;stdio.h>
+#include&#060;stdlib.h>
+#include&#060;<sys/socket.h>
+#include&#060;sys/ioctl.h>
+#include&#060;arpa/inet.h>
+#include&#060;linux/if_ether.h>
+#include&#060;netpacket/packet.h>
+#include&#060;<net/if.h>
+#include&#060;<linux/filter.h>
+#include&#060;linux/kernel.h>
+#include&#060;string.h>
 
 struct sock_filter code[] = {
 { 0x28,  0,  0, 0x0000000c },
@@ -255,8 +261,8 @@ root@f8918abfeb55:/home# ./filterz
 <i>....it will wait to capture arp packets only...</i>
 
 
-Open another terminal for a new container session, and prepare to re-run
-the ethernet frames code (from our last zine, named ether.c):
+Leave this here, and open another terminal for a new container session, and 
+run once again the ethernet frames code ether.c, from our previous zine:
 <span style="color:#FFCC00">
 root@tr0n:~# docker exec -ti f8918abfeb55 /bin/bash
 root@f8918abfeb55:/home#
@@ -275,13 +281,16 @@ packet len:  28
 protocol: 0x0806 [ARP]
 </span>
 
+Success! xD
+	
 <i> Is this used anywhere?! </i>
 
 Once BPF proved itself, it was just a matter of time before it would take
 over the network world, and be used for creating tools like libpcap or
 tcpdump.
 
-Let's practice a bit on tcpdump; since it's based on bpf, we should easily obtain the bytecodes for our arp scenario:
+Let's practice a bit on tcpdump; since it's based on bpf, we should easily obtain 
+the bytecodes for our arp scenario:
 
 <span style="color:#FFCC00">
 root@f8918abfeb55:/home# tcpdump  -d arp
@@ -346,8 +355,7 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 
 
 Now, let's explain this <b> ether[12:2]</b> - it takes the next 2 bytes
-after the first 12 bytes - which is exactly the type (0x0806).
-
+after the first 12 bytes - which is exactly the Type (0x0806).
 
 <b><i>Reminder on the Ethernet Header:
 
@@ -355,10 +363,11 @@ after the first 12 bytes - which is exactly the type (0x0806).
 6 bytes - source address
 2 bytes - the type </i></b>
 
+	
 <i> ... and what else? </i>
 
-We can also add a limit on packet's length. We already know that the packet we crafted last time is 28bytes long.
-
+We can also add a limit on packet's length.
+We already know that the packet we crafted last time is 28bytes long.
 
 Try to run this tcpdump line, for packets bigger than 100 bytes:
 <span style="color:#FFCC00">
@@ -370,7 +379,6 @@ listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 0 packets received by filter
 0 packets dropped by kernel
 </span>
-
 
 
 As you can see, nothing was captured...
@@ -423,7 +431,7 @@ root@f8918abfeb55:/home#
 
 <i>So, we add that in a piece of code or something?</i>
 
-Yes, the "-dd", as in previous example, yes you can apply it in a piece of code.
+Yes, the "-dd",  yes you can apply it in a piece of code (as per previous code example)
 
 ..or you can simply use the output from "-ddd"  with iptables:
 
@@ -439,11 +447,10 @@ packets only,the 0x0806 kewl type; and they gotta be at least this long
 - 20bytes- to get into the nerdz club! No minors allowed!"
 
 
+Pretty kewl, aye?!
 
-Pretty neat, aye?!
 
-
-I hope you enjoyed this zine. Once we will hit the IP header, 
+I hope you enjoyed this zine. Once we will study the IP header, 
 we will be able to play more with BPF and tcpdump.
 
 
