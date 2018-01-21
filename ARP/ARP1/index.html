@@ -58,13 +58,13 @@ I guess it's a matter of laziness, with a pinch of sadistic taste.
 Anywayz, we will focus on the Ethernet II frame:
 
 <span style="color:#FFCC00">
-|------------14 bytes---------|------45-1500bytes----|-4bytes-|
-
-+-------------+--------+------+----------------------+--------+
-| destination | source |      |                      |        |
-|             |        | type |       data           |   CRC  |
-|  address    | address|      |                      |        |
-+-------------+--------+------+----------------------+--------+
+|---------------14 bytes------------|------45-1500bytes----|-4bytes-|
+|----6bytest--|----6bytes----|
++-------------+--------------+------+----------------------+--------+
+| destination |    source    |      |                      |        |
+|             |              | type |       data           |   CRC  |
+|  address    |    address   |      |                      |        |
++-------------+--------------+------+----------------------+--------+
 </span>
 
 
