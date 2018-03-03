@@ -443,21 +443,18 @@ addr_in.sin_family = AF_INET;
 
   
 
- //Populate the pseudo packet
   pseudo_p = (void *)malloc((int) (sizeof(struct pseudo_header) + sizeof(struct tcphdr) + strlen(data)));
   memset(pseudo_p, 0, sizeof(struct pseudo_header) + sizeof(struct tcphdr) + strlen(data));
 
-  //Copy pseudo header
+
   memcpy(pseudo_p, (void *) &pseudo_tcp, sizeof(struct pseudo_header));
 
     tcp_h->seq = htonl(TCPSeqAck);
-    //Calculate check sum: nil current check, copy TCP header + data to pseudo TCP packet, update check
     tcp_h->check = 0;
 
-    //Copy tcp header + data to fake TCP header for checksum
     memcpy(pseudo_p + sizeof(struct pseudo_header), tcp_h, sizeof(struct tcphdr) + strlen(data));
 
-    //Set the TCP header's check field
+
     tcp_h->check = (cksum((unsigned short *) pseudo_p, (int) (sizeof(struct pseudo_header) +
           sizeof(struct tcphdr) +  strlen(data))));
 
