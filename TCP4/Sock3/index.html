@@ -161,7 +161,7 @@ PSEUDO HEADER
 <pre>
 
 
-<i> Do we nede to write code for all that?</i>
+<i> Do we need to write code for all that?</i>
 
 Well, kidz...life is easy, not simple! 
 
@@ -516,13 +516,12 @@ nullQ@tr0n$ sudo docker  run   --privileged  --cap-add=ALL  -d  -v  /dev:/dev \
 -v  /lib/modules:/lib/modules -v  /usr/src:/usr/src -ti fb0c87621d06
 </span>
 
-, where  fb0c87621d06 is the image ID for ahaha
+where  fb0c87621d06 is the image ID for ahaha
 
 <span style="color:#FFCC00">
 root@tr0n:~#docker images | grep -i aha | awk {'print$1, $3'}
 ahaha fb0c87621d06
 </span>
-
 
 For the new container, make sure you update the gcc version:
 
@@ -655,7 +654,7 @@ module_exit(cleanup_main);
 
 Oh, I almost forgot the most important part: <a href="https://www.netfilter.org/documentation/HOWTO/netfilter-hacking-HOWTO-4.html"> Nefilter Modules </a>
 
-Don`t forget to create a new directory, and make a Makefile, with following content:
+Also, do create a new folder, and make a Makefile, with following content:
 
 <span style="color:#FFCC00">
 obj-m := heh.o
@@ -672,7 +671,7 @@ clean:
 My 22kerny folder contains two files, only: the program kerny.c and Makefile
 
 
-Build it, and load it:
+Build the module, and load it:
 <span style="color:#FFCC00">
 root@ec0adc35856f:/home/22kerny# make kerny.c
 root@ec0adc35856f:/home/22kerny# insmod kerny.ko
