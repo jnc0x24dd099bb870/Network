@@ -1,1 +1,840 @@
 
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="20" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+        
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.github.io/Network/">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>Raw TCP/IP packetz</b></h3>--------------------------</p><p><i>...with a side of kernel modules </i></p>
+
+</i>
+
+
+
+Hey, kidz! How you doin`?
+
+
+Ready to be diving into the dark corners of networking Linux? You are?! Good, good! 
+That`s the spirit! 
+
+
+<i>As promised last time, it`s time to have a look at IP headers (and TCP headers..and
+raw TCP/IP packetz, sockets! all their friends!). Yes, we are starting to go up on  
+the OSI Layers (but you`ll see, on Linux system that means to go waaaay down the rabbit
+hole, just  to catch a glimpse of what`s going on.</i>
+
+
+We are here, right now:
+
+<span style="color:#a0a0a0">
+<i> it goes this way ---></i>
+
+		+----------------+----------------+------------------+------------+----------+
+OSI		|     Layer1     |       Layer2   |     Layer3       |  Layer4    | Layer5   |
+Layers		|    Physical    |     Data Link  |    Network       |  Transport | Session  |
+		+----------------+----------------+------------------+------------+----------+
+		
+
+		+----------------+----------------+------------------+-----------------------+
+TCP/IP		|   Transmission |    Physical    |    Network       |       Transport       |
+		|      Medium    |    protocol    |                  |     Sockets/Streams   |
+                |   (Fiber, etc) |   (Ethernet)   |IP+ARP/RARP/ICMP  |       TCP | UDP       |
+		+----------------+----------------+------------------+-----------------------+
+
+</span>
+
+
+So, as usual, hold on to yer delicious cookies and strong coffee,
+thou shalt be educatedtoday! 
+
+
+
+<b>1. [The] RAW[r of] TCP/IP packets</b>
+
+
+This is easy peasy, since I am really good at math:
+
+TCP packet = IP header + TCP header + data 
+
+Voilà! Oh, yeah, and pay attention to the <a href="http://www.postel.org/pipermail/end2end-interest/2005-February/004616.html"> pseudo Header</a> in TCP checksum.
+
+Let`s see how they look like:
+</pre>
+
+IP HEADER
+
+<table border="2">
+<tr>
+<td>00</td><td>__</td><td>__</td><td>__</th><th>__</th><th>__</th><th>__</th><th>07</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>15</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>23</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>31</th>
+</tr>
+<tr>
+<td  colspan="4"><center>Version</td></center><td  colspan="4"><center>IHL</td><td  colspan="8"><center>Type Of Service</td><td  colspan="16"><center>Total Length</td></tr></center>
+<tr>
+<td  colspan="16"><center>Identification</td><td  colspan="3"><center>Flags</td><td  colspan="13"><center>Fragment Offset</td></tr></center>
+<tr>
+<td  colspan="8"><center>Time To Live</td><td  colspan="8"><center>Protocol</td><td  colspan="16"><center>Header Checksum</td></tr></center>
+<tr>
+<td colspan="32"><center>Source Address</td></center></tr>
+<tr>
+<td  colspan="32"><center>Destination Address</td></tr></center></tr>
+<tr>
+<td  colspan="24"><center>Options</td></center><center><td  colspan="8"><center>Padding</td></tr></center></tr>
+</table>
+
+</br></br>
+TCP HEADER
+
+<table border="1">
+<tr>
+<td>00</td><td>__</td><td>__</td><td>__</th><th>__</th><th>__</th><th>__</th><th>07</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>15</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>23</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>31</th>
+</tr>
+<tr>
+<td  colspan="16"><center><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Source Port">Source Port</a></center></td>
+<td  colspan="16"><center><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Destination Port">Destination Port</a></center></td></tr>
+<tr>
+<td  colspan="32"><center><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Sequence Number">Sequence Number</a></center></td></tr>
+<tr>
+<td colspan="32"><center><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Acknowledgment Number">Acknowledgment Number</a></td></center></tr>
+<tr>
+<td colspan="4"><center><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Data Offset">Data Offset</a></center></td>
+<td colspan="3">reserved</td>
+<td colspan="3"><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#ECN">ECN</a></td>
+<td colspan="6"><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Control Bits">Control Bits</a></td>
+<td colspan="16"><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Window">Window</a></td></tr>
+<tr>
+<td colspan="16"><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Checksum">Checksum</a></td>
+<td colspan="16"><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Urgent Pointer">Urgent Pointer</a></td></tr>
+<tr>
+<td colspan="32"><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Options">Options and padding</a> :::</td></tr>
+<tr>
+<td colspan="32"><a href="http://www.networksorcery.com/enp/protocol/tcp.htm#Data">Data</a> :::</td></tr>
+</table>
+
+
+</br></br>
+
+
+PSEUDO HEADER
+
+</br>
+<table border="1">
+<tr>
+<td>00</td><td>__</td><td>__</td><td>__</th><th>__</th><th>__</th><th>__</th><th>07</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>15</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>23</th>
+<th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>__</th><th>31</th>
+</tr>
+<tr>
+<td  colspan="32"><center>Source IP address</td></tr></center>
+<tr>
+<td  colspan="32"><center>Destination IP address</td></tr></center>
+<tr>
+<td bgcolor="green" colspan="8"><center>0</td></center>
+<td  colspan="8"><center>IP Protocol</td></center>
+<td  colspan="16"><center>Total length</td></tr></center>
+</table>
+
+<pre>
+
+
+<i> Do we nede to write code for all that?</i>
+
+Well, kidz...life is easy, not simple! 
+
+
+
+<i>Any new structures?!</i>
+
+Yes, and quite nasty ones!
+
+<b> [a] struct tcphdr </b>
+<span style="color:#a0a0a0">
+struct tcphdr {
+	u_short	th_sport;		/* source port */
+	u_short	th_dport;		/* destination port */
+	tcp_seq	th_seq;			/* sequence number */
+	tcp_seq	th_ack;			/* acknowledgement number */
+#if BYTE_ORDER == LITTLE_ENDIAN 
+	u_char	th_x2:4,		/* (unused) */
+		th_off:4;		/* data offset */
+#endif
+#if BYTE_ORDER == BIG_ENDIAN 
+	u_char	th_off:4,		/* data offset */
+		th_x2:4;		/* (unused) */
+#endif
+	u_char	th_flags;
+#define	TH_FIN	0x01
+#define	TH_SYN	0x02
+#define	TH_RST	0x04
+#define	TH_PUSH	0x08
+#define	TH_ACK	0x10
+#define	TH_URG	0x20
+	u_short	th_win;			/* window */
+	u_short	th_sum;			/* checksum */
+	u_short	th_urp;			/* urgent pointer */
+};
+
+
+</span>
+
+
+<b> [b] struct iphdr </b>
+
+<span style="color:#a0a0a0">
+
+struct iphdr {
+#if defined(__LITTLE_ENDIAN_BITFIELD)
+	__u8	ihl:4,
+		version:4;
+#elif defined (__BIG_ENDIAN_BITFIELD)
+	__u8	version:4,
+  		ihl:4;
+#else
+#error	"Please fix <asm/byteorder.h>"
+#endif
+	__u8	tos;
+	__be16	tot_len;
+	__be16	id;
+	__be16	frag_off;
+	__u8	ttl;
+	__u8	protocol;
+	__sum16	check;
+	__be32	saddr;
+	__be32	daddr;
+	/*The options start here. */
+};
+
+</span>
+
+That little endian &big endian represent the byte order. 
+!!! This is your homework, to learn about endianness
+
+
+As a little helper that I am, an example of how to test the endianess:
+<span style="color:#FFCC00">
+
+#include&#060;stdio.h>
+#include&#060;string.h>
+ 
+#define eh "!"
+
+int main (int argc, char **argv) 
+{
+
+    FILE* file;
+ 
+    struct {
+       int  first;
+	   char last[4];
+    } order;
+ 
+    order.first = 0x41424344;
+    strcpy(order.last, eh );
+ 
+    file = fopen ("checkme", "wb");
+    if (file) {
+        fwrite (&order, sizeof (order), 1, file);
+        fclose (file);
+    }
+}
+</span>
+
+Compile, run & check:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home/ipy# gcc endy.c -o endy
+root@f8918abfeb55:/home/ipy# ./endy
+root@f8918abfeb55:/home/ipy# 
+root@f8918abfeb55:/home/ipy# hexdump -e '8/1 "|%02X ""|\t\t"" -> "' -e '5/1 " | %c""|\n"' checkme 
+|44 |43 |42 |41 |21 |00 |00 |00|		 ->  | D | C | B | A | !|
+
+</span>
+
+<i> See how you learn new things, just by questioning everything?! </i>
+
+I have added a few documentation links in the code, as comments (because I am evil
+like that). 
+So no worries, you'll have a bunch to read.
+
+
+
+<i> Give us the code! Give us the precious! </i>
+
+
+
+<span style="color:#FFCC00">
+
+#include&#060;stdio.h>
+#include&#060;stdlib.h>
+#include&#060;errno.h>
+#include&#060;string.h> 
+#include&#060;unistd.h> 
+#include&#060;sys/socket.h>
+#include&#060;netinet/in.h>
+#include&#060;arpa/inet.h>
+#include&#060;linux/ip.h>
+#include&#060;linux/tcp.h>
+
+/******
+*
+* based on a true horror story: 
+*  https://jve.linuxwall.info/ressources/code/forgetcp.c
+*
+********************************/
+
+
+
+#define DATA "nullQWasHere"
+
+#define IPHSIZE	20
+#define TCPHSIZE 20
+#define PSEUDOTCPHSIZE	12
+
+/* generic calculation of checksum																*/
+/* !!!Do you ever read the stuff I give ya?!													*/		
+/* Pseudo header & chksum																		*/
+/* http://www.tcpipguide.com/free/t_TCPChecksumCalculationandtheTCPPseudoHeader-2.htm			*/
+
+static unsigned short cksum(unsigned short *ptr,int nbytes)
+{
+  register long sum;
+  unsigned short oddbyte;
+  register short answer;
+
+  sum=0;
+  while(nbytes>1) {
+    sum+=*ptr++;
+    nbytes-=2;
+  }
+
+  if(nbytes==1) {
+    oddbyte=0;
+    *((unsigned char *)&oddbyte)=*(unsigned char *)ptr;
+    sum+=oddbyte;
+  }
+
+ sum = (sum>>16)+(sum & 0xffff);
+  sum = sum + (sum>>16);
+  answer=(short)~sum;
+
+  return(answer);
+}
+
+struct pseudo_header {
+  uint32_t s_addr;
+  uint32_t d_addr;
+  uint8_t nil;
+  uint8_t IP_protocol;
+  uint16_t tot_Len;
+};
+
+int main(int argc, char **argv) {
+  int sock, bytes, one = 1;
+  struct iphdr *ip_h;
+  struct tcphdr *tcp_h;
+
+  char *s_ip =argv[1];
+  char *d_ip = argv[2];
+  int d_port = 8667;
+  int s_port = 8666;
+
+/*													
+* K'chin'! http://plife.net/blog/2010/jun/7/understanding-tcp-sequence-acknowledgment-numbers/	
+*													*/
+
+  uint32_t TCPSeqAck = 294967;
+
+
+  char *data;
+
+  char p[512];
+
+  struct sockaddr_in addr_in;
+
+  struct pseudo_header pseudo_tcp;
+
+  char *pseudo_p;
+  
+  if((sock = socket(PF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) 
+  {
+    perror("Error while creating socket");
+    exit(-1);
+  }
+
+/*The IPv4 layer generates an IP header when sending a p */
+/*unless the IP_HDRINCL socket option is enabled on the socket. */
+/*When it is enabled, the p must contain an IP header.     */ 
+/*For receiving the IP header is always included in the p. */
+
+  if(setsockopt(sock, IPPROTO_IP, IP_HDRINCL, (char *)&one, sizeof(one)) < 0) 
+  {
+    perror("Error while setting socket options");
+    exit(-1);
+  }
+
+addr_in.sin_family = AF_INET;
+  addr_in.sin_port = htons(d_port);
+  addr_in.sin_addr.s_addr = inet_addr(d_ip);
+
+  memset(p, 0, sizeof(p));
+
+  ip_h = (struct iphdr *) p;
+  tcp_h = (struct tcphdr *) (p + sizeof(struct iphdr));
+  data = (char *) (p + sizeof(struct iphdr) + sizeof(struct tcphdr));
+  strcpy(data, DATA);
+
+  //Populate ip_h
+  ip_h->ihl=IPHSIZE>>2;
+  ip_h->version = 4; 
+  ip_h->tos = 0;
+  ip_h->tot_len = IPHSIZE + TCPHSIZE+strlen(data);
+  ip_h->id = htons(rand()%65535); 
+  ip_h->frag_off = 0x00; 
+  ip_h->ttl = 0xFF; 
+  ip_h->protocol = IPPROTO_TCP; 
+  ip_h->check = 0; 
+  ip_h->saddr = inet_addr(s_ip); 
+  ip_h->daddr = inet_addr(d_ip); 
+  ip_h->check = cksum((unsigned short *) p, ip_h->tot_len); 
+
+  //Populate tcp_h
+  tcp_h->source = htons(s_port); 
+  tcp_h->dest = htons(d_port); 
+  tcp_h->seq = 0x0; 
+  tcp_h->ack_seq = 0x0; 
+  tcp_h->doff = TCPHSIZE >> 2; 
+  tcp_h->res1 = 0;
+
+   /*do populate more from here..ahahahaha!It still works, tho!*/
+
+
+  //checksum for the TCP header
+  pseudo_tcp.s_addr = inet_addr(argv[1]); 
+  pseudo_tcp.d_addr =  inet_addr(argv[2]);
+  pseudo_tcp.nil = 0; 
+  pseudo_tcp.IP_protocol = IPPROTO_TCP; 
+
+
+ pseudo_tcp.tot_Len=htons(sizeof(struct tcphdr) + strlen(data));
+
+  
+
+ //Populate the pseudo packet
+  pseudo_p = (void *)malloc((int) (sizeof(struct pseudo_header) + sizeof(struct tcphdr) + strlen(data)));
+  memset(pseudo_p, 0, sizeof(struct pseudo_header) + sizeof(struct tcphdr) + strlen(data));
+
+  //Copy pseudo header
+  memcpy(pseudo_p, (void *) &pseudo_tcp, sizeof(struct pseudo_header));
+
+    tcp_h->seq = htonl(TCPSeqAck);
+    //Calculate check sum: nil current check, copy TCP header + data to pseudo TCP packet, update check
+    tcp_h->check = 0;
+
+    //Copy tcp header + data to fake TCP header for checksum
+    memcpy(pseudo_p + sizeof(struct pseudo_header), tcp_h, sizeof(struct tcphdr) + strlen(data));
+
+    //Set the TCP header's check field
+    tcp_h->check = (cksum((unsigned short *) pseudo_p, (int) (sizeof(struct pseudo_header) +
+          sizeof(struct tcphdr) +  strlen(data))));
+
+        //release the packet!!
+    if((bytes = sendto(sock, p, ip_h->tot_len, 0, (struct sockaddr *) &addr_in, sizeof(addr_in))) < 0) {
+      perror("Error on sendto()");
+    }
+    else {
+      printf("Success! Sent %d bytes.\n", bytes);
+    }
+
+//...sheesh!
+
+  return 0;
+}
+
+
+</span>
+
+
+Compile and run as usual: gcc program_name.c -o program_name
+
+
+From a different terminal, run below tcpdump command inside container:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump -vv -X port 8667
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+02:07:37.273349 IP (tos 0x0, ttl 255, id 45298, offset 0, flags [none], proto TCP (6), length 52)
+    172.17.0.2.8666 > 172.17.0.2.8667: Flags [none], cksum 0x4b4a (correct), seq 294967:294979, win 0, length 12
+	0x0000:  4500 0034 b0f2 0000 ff06 b2aa ac11 0002  E..4............
+	0x0010:  ac11 0002 21da 21db 0004 8037 0000 0000  ....!.!....7....
+	0x0020:  5000 0000 4b4a 0000 6e75 6c6c 5157 6173  P...KJ..nullQWas
+	0x0030:  4865 7265                                Here
+</span>
+
+
+
+<b> [2] ...then packetZ met the Kernel modules &made a weird sound like a "Spoof!" </b>
+
+
+
+Now it's the right moment when you can fight or flight. I suggest you stick around.
+Kernel modules are pretty awesome. 
+Also, we`ll be learning how to load kernel modules inside containers *winks-winks*
+
+I know you are very found of "ahaha" docker's image.
+We will be using its image ID to be create new container with the necessary kernel
+libraries:
+
+
+All you gotta do, is run the following command:
+
+<span style="color:#FFCC00">
+nullQ@tr0n$ sudo docker  run   --privileged  --cap-add=ALL  -d  -v  /dev:/dev \
+-v  /lib/modules:/lib/modules -v  /usr/src:/usr/src -ti fb0c87621d06
+</span>
+
+, where  fb0c87621d06 is the image ID for ahaha
+
+<span style="color:#FFCC00">
+root@tr0n:~#docker images | grep -i aha | awk {'print$1, $3'}
+ahaha fb0c87621d06
+</span>
+
+
+For the new container, make sure you update the gcc version:
+
+<span style="color:#a0a0a0">
+update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60  \
+--slave /usr/bin/g++ g++ /usr/bin/g++-5
+</span>
+
+Then, perform an "apt-get install build-essential" and "apt-get update" , 
+and you should be all set-up... and install "make"
+
+This is how my container looks like:
+
+<span style="color:#a0a0a0">
+root@ec0adc35856f:/home/22kery# more /proc/version
+Linux version 4.13.0-32-generic (buildd@lgw01-amd64-004) (gcc version 5.4.0 20160609 (Ub
+untu 5.4.0-6ubuntu1~16.04.5)) #35~16.04.1-Ubuntu SMP Thu Jan 25 10:13:43 UTC 2018
+</span>
+
+
+
+<b> "This is where the fun begins!"</b>
+
+
+...also, do check this awesome tutorial on Kernel modules: <a href="http://www.tldp.org/LDP/lkmpg/2.6/html/"> CLICK ME!!! WIN BILLION DOLLARS IN A SEC!!!!"</a>
+
+It might be ol', but it still has a lot of potential for hungry minds.
+
+<i> How does that help us? </i>
+
+Once you find out its real potential, you`ll be really hook-ed! AHAHA! 
+(oh, gawd, i'm laughing at my own bad jokes)
+
+Now kidz, in order to proceed further, let's talk about skb.
+
+<a href="https://www.fsl.cs.sunysb.edu/kernel-api/re498.html">SKB</a> is the fundamental data structure in the Linux networking code,and it's a socket buffer
+(struct skb_buff)
+
+<a href="http://amsekharkernel.blogspot.ro/2014/08/what-is-skb-in-linux-kernel-what-are.html">This SKB</a> receives or sends every packets.
+
+...and let's check a few functions specific to skb_buff:
+
+<span style="color:#a0a0a0">
+#ifdef NET_SKBUFF_DATA_USES_OFFSET
+static inline unsigned char *skb_network_header(const struct sk_buff *skb)
+{
+        return skb->head + skb->network_header;
+}
+
+static inline unsigned char *skb_mac_header(const struct sk_buff *skb)
+{
+        return skb->head + skb->mac_header;
+}
+
+#else /* NET_SKBUFF_DATA_USES_OFFSET */
+
+static inline unsigned char *skb_network_header(const struct sk_buff *skb)
+{
+        return skb->network_header;
+}
+
+static inline unsigned char *skb_mac_header(const struct sk_buff *skb)
+{
+        return skb->mac_header;
+}
+
+#endif /* NET_SKBUFF_DATA_USES_OFFSET */
+</span>
+
+..and example time!
+
+<span style="color:#FFCC00">
+
+#include&#060;linux/kernel.h>
+#include&#060;linux/module.h>
+#include&#060;linux/netfilter.h>
+#include&#060;linux/netfilter_ipv4.h>
+#include&#060;linux/skbuff.h>
+#include&#060;linux/udp.h>
+#include&#060;linux/icmp.h>
+#include&#060;linux/ip.h>
+#include&#060;linux/inet.h>
+
+#define device "eth0"
+
+
+static struct nf_hook_ops nfin;
+
+static unsigned int hook_func_in(void *priv, struct sk_buff *skb, const struct nf_hook_s
+tate *state)
+
+{
+    struct ethhdr *eth;
+    struct iphdr *ip_header;
+
+    if (!device)
+          return NF_ACCEPT;         
+
+    eth = (struct ethhdr*)skb_mac_header(skb);
+    ip_header = (struct iphdr *)skb_network_header(skb);
+    printk(KERN_INFO "src mac %pM, dst mac %pM\n", eth->h_source, eth->h_dest);
+    printk(KERN_INFO "src IP addr: %pI4\n", &ip_header->saddr);
+    return NF_ACCEPT;
+}
+
+
+static int __init init_main(void)
+{
+    nfin.hook     = hook_func_in;
+    nfin.hooknum  = NF_INET_PRE_ROUTING;
+    nfin.pf       = PF_INET;
+    nfin.priority = NF_IP_PRI_FIRST;
+    nf_register_net_hook(&init_net, &nfin); 
+
+    return 0;
+}
+
+
+
+static void __exit cleanup_main(void)
+{
+    nf_unregister_net_hook(&init_net, &nfin); 
+}
+module_init(init_main);
+module_exit(cleanup_main);
+
+</span>
+
+<i> What else?! </i>
+
+Oh, I almost forgot the most important part: <a href="https://www.netfilter.org/documentation/HOWTO/netfilter-hacking-HOWTO-4.html"> Nefilter Modules </a>
+
+Don`t forget to create a new directory, and make a Makefile, with following content:
+
+<span style="color:#FFCC00">
+obj-m := heh.o
+
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+all:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+clean:
+	rm *o
+</span>
+
+My 22kerny folder contains two files, only: the program kerny.c and Makefile
+
+
+Build it, and load it:
+<span style="color:#FFCC00">
+root@ec0adc35856f:/home/22kerny# make kerny.c
+root@ec0adc35856f:/home/22kerny# insmod kerny.ko
+</span>
+<i> ..and now what?! Nothing happened!</i>
+
+O'rilly?!
+K`mon, let`s test it. 
+Disconnect from your neighbor's wifi for a minute (no extra packets to be  intercepted),
+and check the output.
+
+Resend the raw packet we have just crafted in the other container:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home/ipy# ./tiny_tcp 172.17.0.2 172.17.0.3
+</span>
+
+..and now, check the last messages on the container where kernel module
+was loaded:
+
+<span style="color:#FFCC00">
+root@ec0adc35856f:/home/22kerny#dmesg | grep tail
+[217095.561631] src mac 02:42:ac:11:65:43, dst mac 02:42:ac:11:00:02
+[217095.561633] src IP addr: 172.17.0.3
+</span>
+
+Well, well... yo dah man!!!
+
+But what if I add these small 3 lines in my code (look at the bold lines):
+
+
+<span style="color:#FFCC00">
+root@ec0adc35856f:/home/33kerny# more heh.c
+#include&#060;linux/kernel.h>
+#include&#060;linux/module.h>
+#include&#060;linux/netfilter.h>
+#include&#060;linux/netfilter_ipv4.h>
+#include&#060;linux/skbuff.h>
+#include&#060;linux/udp.h>
+#include&#060;linux/icmp.h>
+#include&#060;linux/ip.h>
+#include&#060;linux/inet.h>
+
+#define device "eth0"
+<b>#define NEW_IDENTITY "122.122.122.122"</b>
+
+
+static struct nf_hook_ops nfin;
+
+static unsigned int hook_func_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
+
+{
+    struct ethhdr *eth;
+    struct iphdr *ip_header;
+
+    if (!device)
+          return NF_ACCEPT;         
+
+    eth = (struct ethhdr*)skb_mac_header(skb);
+    ip_header = (struct iphdr *)skb_network_header(skb);
+    printk(KERN_INFO "src mac %pM, dst mac %pM\n", eth->h_source, eth->h_dest);
+    printk(KERN_INFO "src IP addr: %pI4\n", &ip_header->saddr);
+   <b> ip_header->saddr=in_aton(NEW_IDENTITY);
+    printk(KERN_INFO "now modified src IP addr: %pI4\n", &ip_header->saddr);</b>
+    return NF_ACCEPT;
+}
+
+
+static int __init init_main(void)
+{
+    nfin.hook     = hook_func_in;
+    nfin.hooknum  = NF_INET_PRE_ROUTING;
+    nfin.pf       = PF_INET;
+    nfin.priority = NF_IP_PRI_FIRST;
+    nf_register_net_hook(&init_net, &nfin);
+
+    return 0;
+}
+
+
+
+static void __exit cleanup_main(void)
+{
+    nf_unregister_net_hook(&init_net, &nfin);
+}
+module_init(init_main);
+module_exit(cleanup_main);
+</span>
+
+
+Build it, load it:
+
+<span style="color:#FFCC00">
+root@ec0adc35856f:/home/33kerny# make
+make -C /lib/modules/4.13.0-32-generic/build SUBDIRS=/home/33kerny modules
+make[1]: Entering directory `/usr/src/linux-headers-4.13.0-32-generic'
+  CC [M]  /home/33kerny/heh.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /home/33kerny/heh.mod.o
+  LD [M]  /home/33kerny/heh.ko
+make[1]: Leaving directory `/usr/src/linux-headers-4.13.0-32-generic'
+root@ec0adc35856f:/home/33kerny# 
+root@ec0adc35856f:/home/33kerny#insmod heh.ko
+</span>
+
+Resend again the raw packet:
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home/ipy# ./tiny_tcp 172.17.0.2 172.17.0.3
+</span>
+
+Now, go back to your container with kernel module and check last messages:
+
+
+<span style="color:#FFCC00">
+root@ec0adc35856f:/home/33kerny# dmesg | tail
+[217758.318273] src mac 02:42:ac:11:65:43, dst mac 02:42:ac:11:00:02
+[217758.318277] src IP addr: 172.17.0.3
+[217758.318280] now modified src IP addr: 122.122.122.122
+</span>
+
+
+Ahh, I love danger!
+
+Unload your kernel module:
+<span style="color:#FFCC00">
+root@ec0adc35856f:/home/33kerny# lsmod | grep heh
+heh                    16384  0 
+root@ec0adc35856f:/home/33kerny# rmmod heh
+root@ec0adc35856f:/home/33kerny# lsmod | grep heh
+root@ec0adc35856f:/home/33kerny# 
+root@ec0adc35856f:/home/33kerny# echo $?
+0
+</span>
+
+
+Well, kidz! that`s a wrap for today. 
+
+You make sure you read all the links I gave you.
+
+Next time, we will be doing a nice introduction in R programming, Jupyter, and 
+data analysis for network traffic. 
+
+
+See ya!
+
+===========================
+
+
+All links provided in this tutorial.
+All links from older tutorials.
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
+
