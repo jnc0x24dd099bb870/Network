@@ -630,6 +630,15 @@ static unsigned int hook_func_in(void *priv, struct sk_buff *skb, const struct n
     return NF_ACCEPT;
 }
 
+/* On older vesion than 4.13 kernel (or newer version than 4.13)
+netfilter function has the form:
+
+unsigned int hook_func_in(unsigned int hooknum,
+                       struct sk_buff **skb,
+                       const struct net_device *in,
+                       const struct net_device *out,
+                       int (*okfn)(struct sk_buff *)) */
+
 
 static int __init init_main(void)
 {
@@ -750,6 +759,14 @@ static unsigned int hook_func_in(void *priv, struct sk_buff *skb, const struct n
     return NF_ACCEPT;
 }
 
+/* On older vesion than 4.13 kernel (or newer version than 4.13)
+netfilter function has the form:
+
+unsigned int hook_func_in(unsigned int hooknum,
+                       struct sk_buff **skb,
+                       const struct net_device *in,
+                       const struct net_device *out,
+                       int (*okfn)(struct sk_buff *)) */
 
 static int __init init_main(void)
 {
