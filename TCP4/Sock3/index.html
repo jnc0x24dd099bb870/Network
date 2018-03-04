@@ -640,7 +640,7 @@ static int __init init_main(void)
     nf_register_net_hook(&init_net, &nfin); 
     
     //on older versions than 4.13 kernel
-    //or newer version that 4.13 kernel
+    //or newer version than 4.13 kernel
     //use: nf_register_hook(&nfin)
 
     return 0;
@@ -653,7 +653,7 @@ static void __exit cleanup_main(void)
     nf_unregister_net_hook(&init_net, &nfin); 
     
     //on older versions than 4.13 kernel
-    //or newer version that 4.13 kernel
+    //or newer version than 4.13 kernel
     //use: nf_unregister_hook(&nfin)
 }
 module_init(init_main);
@@ -758,6 +758,10 @@ static int __init init_main(void)
     nfin.pf       = PF_INET;
     nfin.priority = NF_IP_PRI_FIRST;
     nf_register_net_hook(&init_net, &nfin);
+    
+    //on older versions than 4.13 kernel
+    //or newer version than 4.13 kernel
+    //use: nf_register_hook(&nfin)
 
     return 0;
 }
@@ -767,6 +771,9 @@ static int __init init_main(void)
 static void __exit cleanup_main(void)
 {
     nf_unregister_net_hook(&init_net, &nfin);
+    //on older versions than 4.13 kernel
+    //or newer version than 4.13 kernel
+    //use: nf_unregister_hook(&nfin)
 }
 module_init(init_main);
 module_exit(cleanup_main);
