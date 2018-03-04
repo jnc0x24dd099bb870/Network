@@ -614,8 +614,7 @@ static inline unsigned char *skb_mac_header(const struct sk_buff *skb)
 
 static struct nf_hook_ops nfin;
 
-static unsigned int hook_func_in(void *priv, struct sk_buff *skb, const struct nf_hook_s
-tate *state)
+static unsigned int hook_func_in(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 
 {
     struct ethhdr *eth;
@@ -639,6 +638,10 @@ static int __init init_main(void)
     nfin.pf       = PF_INET;
     nfin.priority = NF_IP_PRI_FIRST;
     nf_register_net_hook(&init_net, &nfin); 
+    
+    //on older versions than 4.13 kernel
+    //or newer version that 4.13 kernel
+    //use: nf_register_hook(&nfin)
 
     return 0;
 }
@@ -648,6 +651,10 @@ static int __init init_main(void)
 static void __exit cleanup_main(void)
 {
     nf_unregister_net_hook(&init_net, &nfin); 
+    
+    //on older versions than 4.13 kernel
+    //or newer version that 4.13 kernel
+    //use: nf_unregister_hook(&nfin)
 }
 module_init(init_main);
 module_exit(cleanup_main);
