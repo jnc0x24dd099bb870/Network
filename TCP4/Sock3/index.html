@@ -385,10 +385,10 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-/*The IPv4 layer generates an IP header when sending a p */
+/*The IPv4 layer generates an IP header when sending a packet */
 /*unless the IP_HDRINCL socket option is enabled on the socket. */
 /*When it is enabled, the p must contain an IP header.     */ 
-/*For receiving the IP header is always included in the p. */
+/*For receiving the IP header is always included in the packet */
 
   if(setsockopt(sock, IPPROTO_IP, IP_HDRINCL, (char *)&one, sizeof(one)) < 0) 
   {
@@ -396,7 +396,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-addr_in.sin_family = AF_INET;
+  addr_in.sin_family = AF_INET;
   addr_in.sin_port = htons(d_port);
   addr_in.sin_addr.s_addr = inet_addr(d_ip);
 
@@ -474,9 +474,16 @@ addr_in.sin_family = AF_INET;
 
 </span>
 
+Compile as usual: 
+span style="color:#FFCC00">
+root@f8918abfeb55:/home/ticy#gcc tiny_tcp.c -o tiny_tcp
+</span>
 
-Compile and run as usual: gcc program_name.c -o program_name
+...and run: 
+span style="color:#FFCC00">
 
+root@f8918abfeb55:/home/ticy#./tiny_tcp 172.17.0.2 172.17.0.2
+</span>
 
 From a different terminal, run below tcpdump command inside container:
 
