@@ -661,7 +661,7 @@ Oh, I almost forgot the most important part: <a href="https://www.netfilter.org/
 Also, do create a new folder, and make a Makefile, with following content:
 
 <span style="color:#FFCC00">
-obj-m := heh.o
+obj-m := kerny.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
@@ -677,7 +677,7 @@ My 22kerny folder contains two files, only: the program kerny.c and Makefile
 
 Build the module, and load it:
 <span style="color:#FFCC00">
-root@ec0adc35856f:/home/22kerny# make kerny.c
+root@ec0adc35856f:/home/22kerny# make 
 root@ec0adc35856f:/home/22kerny# insmod kerny.ko
 </span>
 <i> ..and now what?! Nothing happened!</i>
@@ -765,8 +765,22 @@ module_init(init_main);
 module_exit(cleanup_main);
 </span>
 
+Our Makefile:
+
+<span style="color:#FFCC00">
+obj-m := heh.o
+
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+all:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+clean:
+	rm *o
+</span>
 
 Build it, load it:
+
 
 <span style="color:#FFCC00">
 root@ec0adc35856f:/home/33kerny# make
