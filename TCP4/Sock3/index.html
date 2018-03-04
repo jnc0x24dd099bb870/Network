@@ -63,7 +63,7 @@ TCP/IP		|   Transmission |    Physical    |    Network       |       Transport  
 
 
 So, as usual, hold on to yer delicious cookies and strong coffee,
-thou shalt be educatedtoday! 
+thou shalt be educated today! 
 
 
 
@@ -80,7 +80,7 @@ Let`s see how they look like:
 </pre>
 
 IP HEADER
-
+ </br>
 <table border="2">
 <tr>
 <td>00</td><td>__</td><td>__</td><td>__</th><th>__</th><th>__</th><th>__</th><th>07</th>
@@ -104,7 +104,7 @@ IP HEADER
 
 </br></br>
 TCP HEADER
-
+</br>
 <table border="1">
 <tr>
 <td>00</td><td>__</td><td>__</td><td>__</th><th>__</th><th>__</th><th>__</th><th>07</th>
@@ -276,10 +276,8 @@ root@f8918abfeb55:/home/ipy# hexdump -e '8/1 "|%02X ""|\t\t"" -> "' -e '5/1 " | 
 
 <i> See how you learn new things, just by questioning everything?! </i>
 
-I have added a few documentation links in the code, as comments (because I am evil
-like that). 
+I have added a few documentation links in the code, as comments (because I am evil like that). 
 So no worries, you'll have a bunch to read.
-
 
 
 <i> Give us the code! Give us the precious! </i>
@@ -314,10 +312,10 @@ So no worries, you'll have a bunch to read.
 #define TCPHSIZE 20
 #define PSEUDOTCPHSIZE	12
 
-/* generic calculation of checksum				*/
-/* !!!Do you ever read the stuff I give ya?!			*/		
-/* Pseudo header & chksum        				*/
-/* http://www.tcpipguide.com/free/t_TCPChecksumCalculationandtheTCPPseudoHeader-2.htm			*/
+/* generic calculation of checksum				                                       */
+/* !!!Do you ever read the stuff I give ya?!			                                       */		
+/* Pseudo header & chksum        				                                       */
+/* http://www.tcpipguide.com/free/t_TCPChecksumCalculationandtheTCPPseudoHeader-2.htm		       */
 
 static unsigned short cksum(unsigned short *ptr,int nbytes)
 {
@@ -385,10 +383,10 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-/*The IPv4 layer generates an IP header when sending a packet */
+/*The IPv4 layer generates an IP header when sending a packet   */
 /*unless the IP_HDRINCL socket option is enabled on the socket. */
-/*When it is enabled, the p must contain an IP header.     */ 
-/*For receiving the IP header is always included in the packet */
+/*When it is enabled, the p must contain an IP header.          */ 
+/*For receiving the IP header is always included in the packet  */
 
   if(setsockopt(sock, IPPROTO_IP, IP_HDRINCL, (char *)&one, sizeof(one)) < 0) 
   {
@@ -442,10 +440,8 @@ int main(int argc, char **argv) {
  pseudo_tcp.tot_Len=htons(sizeof(struct tcphdr) + strlen(data));
 
   
-
   pseudo_p = (void *)malloc((int) (sizeof(struct pseudo_header) + sizeof(struct tcphdr) + strlen(data)));
   memset(pseudo_p, 0, sizeof(struct pseudo_header) + sizeof(struct tcphdr) + strlen(data));
-
 
   memcpy(pseudo_p, (void *) &pseudo_tcp, sizeof(struct pseudo_header));
 
@@ -453,7 +449,6 @@ int main(int argc, char **argv) {
     tcp_h->check = 0;
 
     memcpy(pseudo_p + sizeof(struct pseudo_header), tcp_h, sizeof(struct tcphdr) + strlen(data));
-
 
     tcp_h->check = (cksum((unsigned short *) pseudo_p, (int) (sizeof(struct pseudo_header) +
           sizeof(struct tcphdr) +  strlen(data))));
@@ -512,7 +507,6 @@ I know you are very found of "ahaha" docker's image.
 We will be using its image ID to be create new container with the necessary kernel
 libraries:
 
-
 All you gotta do, is run the following command:
 
 <span style="color:#FFCC00">
@@ -554,6 +548,7 @@ untu 5.4.0-6ubuntu1~16.04.5)) #35~16.04.1-Ubuntu SMP Thu Jan 25 10:13:43 UTC 201
 
 It might be ol', but it still has a lot of potential for hungry minds.
 
+
 <i> How does that help us? </i>
 
 Once you find out its real potential, you`ll be really hook-ed! AHAHA! 
@@ -564,7 +559,8 @@ Now kidz, in order to proceed further, let's talk about skb.
 <a href="https://www.fsl.cs.sunysb.edu/kernel-api/re498.html">SKB</a> is the fundamental data structure in the Linux networking code,and it's a socket buffer
 (struct skb_buff)
 
-<a href="http://amsekharkernel.blogspot.ro/2014/08/what-is-skb-in-linux-kernel-what-are.html">This SKB</a> receives or sends every packets.
+<a href="http://amsekharkernel.blogspot.ro/2014/08/what-is-skb-in-linux-kernel-what-are.html">This SKB</a> receives or sends every packet.
+
 
 ...and let's check a few functions specific to skb_buff:
 
@@ -594,6 +590,8 @@ static inline unsigned char *skb_mac_header(const struct sk_buff *skb)
 
 #endif /* NET_SKBUFF_DATA_USES_OFFSET */
 </span>
+
+
 
 ..and example time!
 
@@ -674,9 +672,10 @@ module_exit(cleanup_main);
 
 Oh, I almost forgot the most important part: <a href="https://www.netfilter.org/documentation/HOWTO/netfilter-hacking-HOWTO-4.html"> Nefilter Modules </a>
 
-Also, do create a new folder, and make a Makefile, with following content:
+Also, do create a new folder, and a Makefile, with following content:
 
 <span style="color:#FFCC00">
+root@ec0adc35856f:/home/22kerny#more Makefile
 obj-m := kerny.o
 
 KDIR := /lib/modules/$(shell uname -r)/build
@@ -688,14 +687,17 @@ clean:
 	rm *o
 </span>
 
-My 22kerny folder contains two files, only: the program kerny.c and Makefile
+
+My <i>22kerny</i> folder contains two files, only: the program <i>kerny.c</i> and <i>Makefile</i>
 
 
 Build the module, and load it:
+
 <span style="color:#FFCC00">
 root@ec0adc35856f:/home/22kerny# make 
 root@ec0adc35856f:/home/22kerny# insmod kerny.ko
 </span>
+
 <i> ..and now what?! Nothing happened!</i>
 
 O'rilly?!
@@ -782,7 +784,6 @@ static int __init init_main(void)
 
     return 0;
 }
-
 
 
 static void __exit cleanup_main(void)
