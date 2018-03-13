@@ -1,1 +1,548 @@
 
+
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="20" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+        
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.github.io/Network/">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>Raw TCP/IP packetz (II)</b></h3>--------------------------</p><p><i>...with a side of preparing debugging env, and randomness </i></p>
+
+</i>
+
+
+
+Oh, hi! Nice to see you...again...so soon...
+
+
+How was this last week for you? You well rested and well fed? You gotta keep that
+brain happy, you know?
+
+As usual, I will start with my innocent assumptions: that you`ve read my last zine,
+played a bit with the code, re-read all the provided links...ugh...Wait, waht?!  You did?
+Oh, such pride, such joy!
+
+
+Well, then.. cookies and coffee for the wicked &SYNful you. Pfehehehe!
+
+
+
+As you already are aware of, last time we crafted an experimental tcp/ip raw packet. 
+<i>...and probably you tried to fill in all those fields from tcp header...or not... </i>
+We`ll take care of that today, in case you did not test it. 
+
+
+Last week, our tcpdump capture looked like this:
+
+<span style="color:#FFCC00">
+root@f8918abfeb55:/home# tcpdump -vv -X port 8667
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+02:07:37.273349 IP (tos 0x0, ttl 255, id 45298, offset 0, flags [none], proto TCP (6), length 52)
+    172.17.0.2.8666 > 172.17.0.2.8667:<b> Flags [none]</b>, cksum 0x4b4a (correct), seq 294967:294979, win 0, length 12
+[........snip........]
+
+</span>
+
+
+...and some of you probably noticed that "Flags [none]" ... these TCP Flags are located 
+in between Reserved and Window fields.
+
+
+<i>Throw Back Thursday on TCP header...oh, boy, how time flies by! </i>
+
++----------------------------+----------------------------+
+|   Source Port		     |    Destination Port	  |
++----------------------------+----------------------------+
+|                    Sequence Number                      |
++---------------------------------------------------------+
+|		Acknowledgement Number 			  |
++---------+-------+----------+----------------------------+
+| Offset  |Rserved| TCP Flags|          Window            |
++---------+-------+----------+----------------------------+
+|       Checksum             |      Urgent Pointer        |
++----------------------------+----------------------------+
+|                        Options                          |
++---------------------------------------------------------+	
+
+
+Each flag has a size of just one 1 bit, and their purpose is to indicate the particularities 
+of a connection:
+
+<span style="color:#a0a0a0">
+SYN – Synchronisation -  the 1st packet only, from both the sender &receiver should have this flag 
+ACK – Acknowledgment, is used to acknowledge the successful receipt of a packet. 
+FIN – Finished, means that the data from sender is kaputt!
+URG – Urgent, packets to be processed before all other packets. 
+RST – RESET ... it's some sort of game over
+</span>
+Read the rest, and more! at <a href = "http://www.firewall.cx/networking-topics/protocols/tcp/136-tcp-flag-options.html">this tutorial</a> 
+
+Remember, each one of them is 1 bit sized:
+<span style="color:#a0a0a0">
+TCP Flags
++-+-+-+-+-+-+-+-+
+|C|E|U|A|P|R|S|F|
+|W|C|R|C|S|S|Y|I|
+|R|E|G|K|H|T|N|N|
++-+-+-+-+-+-+-+-+
+</span>
+
+And (some of) their representation per bits:
+
+<span style="color:#a0a0a0">
+Flags		     Bits                 Meaning
+==========         ==========            ============
+---- --S-	    0000 0010             syn
+---A --S-	    0001 0010             syn-ack
+---A ----	    0001 0000             ack
+---A -R--	    0001 0100             rst-ack. 
+---- --SF	    0000 0011             syn-fin 
+</span>
+ 
+ ...you get the idea
+
+
+Let's add the following lines in the tiny_tcp.c program:
+
+<span style="color:#FFCC00">
+
+    tcp_h->syn=1; 
+    tcp_h->ack=0;
+    tcp_h->rst=0;
+    tcp_h->psh=0;
+    tcp_h->urg=0; 
+    tcp_h->fin=0;
+    tcp_h->urg_ptr = 0; 
+    
+</span>
+Compile and run as usual: <i>gcc tiny_tcp.c -o tiny_tcp</i>
+Find the updated tiny_tcp code on github, for some serious lulz. 
+
+Now, let's create 2 new containers from ahaha image, for debugging &packets capture
+purposes! We`ll run the code from one of them.
+ 
+ 
+ 
+[---------------prepare debugging/troubleshooting environment
+
+
+
+Since ptrace is by default disabled under Ubuntu, we will have to be careful in 
+avoiding that very annoying message "read-only file" message.
+
+
+<span style="color:#FFCC00">
+
+nullQ@tr0n:/home$ sudo docker run --security-opt seccomp:unconfined --privileged --cap-add=ALL \
+ -ti `docker images | grep ahaha | awk {'print $3'}` /bin/bash
+</span>
+
+Try to enable ptrace. You should receive no errors:
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home# 
+root@c44d7fdcab82:/home# echo 0 > /proc/sys/kernel/yama/ptrace_scope
+root@c44d7fdcab82:/home# 
+</span>
+
+Make the necessay updates, install the necessary tools:
+
+<span style="color:#FFCC00">
+ apt-get update
+ apt-get install gdb
+ apt-get install strace
+ apt-get install tcpdump
+ </span>
+
+Now, check if tcpdump is working (because privileged options on container can make 
+your life harder!):
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home# tcpdump
+tcpdump: error while loading shared libraries: libcrypto.so.1.0.0: cannot open shared object file: Permission denied
+</span>
+
+Ewwww... 
+
+No worries, I got this!
+
+Move /usr/sbin tcpdump files under /usr/bin, and perform a hard link:
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home# mv /usr/sbin/tcpdump /usr/bin/tcpdump
+root@c44d7fdcab82:/home# ln -s /usr/bin/tcpdump /usr/sbin/tcpdump
+root@c44d7fdcab82:/home# 
+root@c44d7fdcab82:/home# 
+root@c44d7fdcab82:/home# tcpdump
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+</span>
+
+Nice, it`s working!
+
+What now?!
+
+Now you can easily check any network issues with the help of tcpdump or strace, 
+and make debug your networking code with the help of gdb. 
+
+Start by looking at what "strace tcpdump" does. How does tcpdump actually work? 
+What are the syscalls it uses? What about memory?!  How about attaching that strace to a 
+process. Experiment with the tcpdump process itself. 
+
+Let's say I already have tcpdump opened. And I attach strace to its process:
+
+<span style="color:#FFCC00">
+strace -s 65535 -p `ps -o pid -C tcpdump | awk 'NR==2'`
+</span>
+
+What are these lines?! 
+
+<span style="color:#FFCC00">
+open("/etc/resolv.conf", O_RDONLY|O_CLOEXEC) = 4
+[....snip....]
+socket(PF_INET, SOCK_DGRAM|SOCK_NONBLOCK, IPPROTO_IP) = 4
+connect(4, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("8.8.8.8")}, 16) = 0
+[...snip.....]
+recvfrom(4, "\370\333\201\203\0\1\0\0\0\1\0\0\003250\0032665\003275\003239\7in-"..., 1024, 0, {sa_family=AF_INET,
+sin_port=htons(53), sin_addr=inet_addr("8.8.8.8")}, [16]) = 103
+</span>
+
+
+To which  services does port 53 belong to? 
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82# awk '!/^\s*$/ && !/^\s*#/ {print $1, $2}' /etc/services | grep -E '\b53\/tcp'
+
+domain 53/tcp
+</span>
+
+What else do you notice?
+
+
+Then go after gdb:
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home/ipy# gdb -q ./tiny_tcp
+Reading symbols from ./tiny_tcp...(no debugging symbols found)...done.
+(gdb) set args 172.17.0.3 172.17.0.3 
+(gdb) run
+Starting program: /home/ipy/tiny_tcp 172.17.0.3 172.17.0.3
+Success! Sent 52 bytes.
+[Inferior 1 (process 3266) exited normally]
+ (gdb) disas /m
+Dump of assembler code for function main:
+   0x0000000000400b35 <+0>:	push   %rbp
+   0x0000000000400b36 <+1>:	mov    %rsp,%rbp
+[.......snip...the...nightmare...fuel.........]
+</span>
+  
+More stuff to play with! Try to apply gdb to tcpdump with arguments. 
+
+
+What if I use gdb like this?
+
+[from a terminal; IP 172.17.0.6]
+<span style="color:#FFCC00">
+root@99cdd415abc1:/home# gdbserver 172.17.0.6:1212 vi foo.txt
+Process vi created; pid = 530
+Listening on port 1212
+Remote debugging from host 172.17.0.5
+</span>
+
+[from another terminal; IP 172.17.0.5]
+<span style="color:#FFCC00">
+root@c44ddfdcab82:/home/ipy# gdb -q
+(gdb) set debug remote 1
+(gdb) show remotetimeout
+Timeout limit to wait for target to respond is 2.
+(gdb) set remotetimeout 10
+(gdb) show remotetimeout
+Timeout limit to wait for target to respond is 10.
+
+(gdb) target remote 172.17.0.6:1212
+
+(gdb) info inferiors
+  Num  Description       Executable        
+* 1    process 530                         
+(gdb) 
+</span>
+
+Remote debugging possibility...uuuuu... 
+
+
+
+Enough commercial to Linux tools!
+Proceed with the creation of second container, and let's see how
+the packets behave, after we enabled SYN flag in our code.
+
+
+[--------------Gibt Flags! NAO!!
+
+
+On my side, the two containers look as below:
+
+<span style="color:#a0a0a0">
+ 172.17.0.6 (99cf0415abc1)
+ 
+ and 
+ 
+ 172.17.0.5(c44d7fdcab82)
+
+</span>
+Open port 8667 on 172.17.0.6:
+<span style="color:#FFCC00">
+root@99cf0415abc1:/home# nc -l 8667
+
+</span>
+
+And from container 172.17.0.5, send the packet:
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home/ipy# ./tiny_tcp 172.17.0.5 172.17.0.6
+Success! Sent 52 bytes.
+</span>
+
+...open a simple tcpdump, that listens on one of those 2 ports:
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home# tcpdump -i eth0 port 8667
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+21:53:16.318897 IP 172.17.0.5.8666 > 172.17.0.6.8667: Flags <b>[S]</b>, seq 294967:294979, win 5550, length 12
+21:53:16.319041 IP 172.17.0.6.8667 > 172.17.0.5.8666: Flags <b>[S.]</b>, seq 3205945166, ack 294968, win 29200, options [mss 1460], length 0
+21:53:16.319089 IP 172.17.0.5.8666 > 172.17.0.6.8667: Flags <b>[R]</b>, seq 294968, win 0, length 0
+</span>
+
+So, I have SYN, SYN-ACK (that dot "." represents ack), and RST as flags.
+
+Close enough to a <a href="http://www.inetdaemon.com/tutorials/internet/tcp/3-way_handshake.shtml">3 handshake</a>!
+
+
+<i>(you can try from here to find a way to trick that RST and get a ACK instead:
+kernel bypassing,  ARP spoofing... eh? eh?! )</i>
+
+
+
+[---------------Filters, filters everywhere!
+
+
+
+What if I don't want to see the entire output in tcpdump? What if I am interested 
+in specific information about these packets that could help me with troubleshooting..or stuff?!
+
+Let's say I just want to capture SYN-ACK. From where I start? 
+
+<i>How were those bits?!</i>
+
+---A --S- 
+0001 0010  ==> 18 (dec) ==> 0x12 (hex) 
+
+<i>What else do I need? </i>
+
+Remember BPF? This is your TCP header now:
+<span style="color:#a0a0a0">
+
+tcp[0:2]		source port
+tcp[2:2]		destination port
+tcp[4:4]		sequence number
+tcp[8:4]		acknowledgement number
+tcp[12]			header length
+<b>tcp[13]			tcp flags</b>
+tcp[14:2]		window size
+tcp[16:2]		checksum
+tcp[18:2]		urgent pointer
+tcp[20..60]		options or data
+</span>
+
+<i>How would our tcpdump command SYN-ACK look then?</i>
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home/ipy# tcpdump  -vv -X -i eth0   'tcp[13] = 0x12'
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+21:56:10.903339 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto TCP (6), length 44)
+    172.17.0.6.8667 > c44d7fdcab82.8666: Flags <b>[S.]</b>, cksum 0x584c (incorrect -> 0xcb9a), seq 2871366438, ack 294968, win 29200, options [mss 1460], length 0
+	0x0000:  4500 002c 0000 4000 4006 e29e ac11 0006  E..,..@.@.......
+	0x0010:  ac11 0005 21db 21da ab25 9326 0004 8038  ....!.!..%.&...8
+	0x0020:  6012 7210 584c 0000 0204 05b4            `.r.XL......
+</span>
+
+
+What if I want to capture just the packets that carry "null" as data?
+
+Hex for "null" is 0x6e756c6
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home/ipy# tcpdump -X '((port 8667) and tcp[20:4] = 0x6e756c6c)'
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+14:31:47.765665 IP c44d7fdcab82.8666 > 172.17.0.6.8667: Flags [S], seq 294967:294979, win 5550, length 12
+	0x0000:  4500 0034 b0f2 0000 ff06 b2a3 ac11 0005  E..4............
+	0x0010:  ac11 0006 21da 21db 0004 8037 0000 0000  ....!.!....7....
+	0x0020:  5002 15ae 3593 0000 6e75 6c6c 5157 6173  P...5...<b>null</b>QWas
+	0x0030:  4865 7265                                Here
+</span>
+
+What if I try it this way:
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home/ipy# tcpdump -X '((port 8667) and tcp[((tcp[0xC:1] & 0xf0) >> 2):4] = 0x6e756c6c)'
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+14:42:48.336862 IP c44d7fdcab82.8666 > 172.17.0.6.8667: Flags [S], seq 294967:294979, win 5550, length 12
+	0x0000:  4500 0034 b0f2 0000 ff06 b2a3 ac11 0005  E..4............
+	0x0010:  ac11 0006 21da 21db 0004 8037 0000 0000  ....!.!....7....
+	0x0020:  5002 15ae 3593 0000 6e75 6c6c 5157 6173  P...5...nullQWas
+	0x0030:  4865 7265                                Here
+
+
+</span>
+<i>
+tcp[0xC:1] is same as tcp[12:1]
+
+(tcp[((tcp[0xC:1] & 0xfo) >> 2):4] = 0x6e756c6c) ==> (tcp[{data offset}:4]= 0x6e756c6c)
+</i>
+
+Well, it looks quite like our previous example.
+Magic!
+
+
+Play with these options in your tcpdump. 
+
+<span style="color:#FFCC00">
+(tcp[13] & 0x02) != 0
+
+'tcp[13] & 4 = 4'
+
+'tcp[13] & 8 != 0' //who dis?!
+
+</span>
+
+Make your own filters.
+You have these packets (sort of...) I crafted, you can practice at least on SYN, SYN-ACK and RST.
+
+The environment is all done. Let the headaches begin!
+
+
+
+[---------------Randomness
+
+
+
+Yuh, well...I'm not a wizzard at this...nor I`m after optimizig stuff 
+just for missing all the phun. 
+I let my imagination flow...It feels nice to be creative.
+
+How about doing all that random IP using Perl?! 
+
+Just a small Perl line to be called from our C code.
+
+We`re gonna use "system", not only to execute the perl inliner that will provide
+the random IP, but to also write the new IP in a file. 
+
+From there, we take everything up until the string ends, 
+and put it into the source ip:
+
+<span style="color:#FFCC00">
+
+char* randomz = system("perl -e \'$,=\".\";print map int rand 256,1..4\'> huehue.txt");
+file=fopen("/home/ipy/huehue.txt", "r");
+fscanf(file,"%[^\n]", c);
+strcpy(s_ip, c);
+</span>
+
+Obviously, my cr4ppy code will become even more (how do those CS geeks call it?), 
+ah yes, hardcoded!
+
+
+Sprinkle some changes if you wanna see randomn glory:
+
+<span style="color:#FFCC00">
+ FILE *file;
+ char c[490], s_ip[400];
+ char *d_ip = argv[1]; 
+</span>
+
+<i>And now, le wild test...</i>
+
+So, I've sent my packet using ./new_tiny 172.17.0.6 ...twice!
+
+As you can see, the sender's IP was changed twice:
+
+<span style="color:#FFCC00">
+root@c44d7fdcab82:/home/ipy# tcpdump -X -vv -i eth0 port 8667
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+04:16:12.857379 IP (tos 0x0, ttl 255, id 45298, offset 0, flags [none], proto TCP (6), length 52)
+    <b>9.205.27.1</b>.8666 > 172.17.0.6.8667: Flags [S], cksum 0xbcdb (correct), seq 294967:294979, win 5550, length 12
+	0x0000:  4500 0034 b0f2 0000 ff06 39ec 09cd 1b01  E..4......9.....
+	0x0010:  ac11 0006 21da 21db 0004 8037 0000 0000  ....!.!....7....
+	0x0020:  5002 15ae bcdb 0000 6e75 6c6c 5157 6173  P.......nullQWas
+	0x0030:  4865 7265                                Here
+04:16:23.893321 IP (tos 0x0, ttl 255, id 45298, offset 0, flags [none], proto TCP (6), length 52)
+    <b>228.138.7.125</b>.8666 > 172.17.0.6.8667: Flags [S], cksum 0xf5a1 (correct), seq 294967:294979, win 5550, length 12
+	0x0000:  4500 0034 b0f2 0000 ff06 72b2 e48a 077d  E..4......r....}
+	0x0010:  ac11 0006 21da 21db 0004 8037 0000 0000  ....!.!....7....
+	0x0020:  5002 15ae f5a1 0000 6e75 6c6c 5157 6173  P.......nullQWas
+	0x0030:  4865 7265                                Here
+</span>
+ 
+
+Also available on github;
+in case somebody wants to test it, improve it, or even have a good laugh. 
+
+<i>My blog, i do what I want! *Victory danse*</i>
+
+
+Tcpdump is quite amazing. We`ll be using it for our next tutorial as well,
+for the data analysis part (well, just to create a simple capture).
+
+
+
+I hope you enjoyed this zine.
+Initially, this wasn't planned at, but I said to myself, "eh, life's short...not enough 
+useful notions...etc, etc...". 
+
+
+  
+  
+Have a nice day! 
+
+===========================
+
+<i>To be read:</i>
+
+https://staff.washington.edu/dittrich/talks/core02/tools/tcpdump-filters.txt
+
+https://security.stackexchange.com/questions/121011/wireshark-tcp-filter-tcptcp121-0xf0-24
+
+http://www.brendangregg.com/blog/2014-05-11/strace-wow-much-syscall.html
+
+http://davis.lbl.gov/Manuals/GDB/gdb_17.html
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
