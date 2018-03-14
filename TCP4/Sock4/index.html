@@ -376,7 +376,7 @@ tcp[20..60]		options or data
 root@c44d7fdcab82:/home/ipy# tcpdump  -vv -X -i eth0   'tcp[13] = 0x12'
 tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
 21:56:10.903339 IP (tos 0x0, ttl 64, id 0, offset 0, flags [DF], proto TCP (6), length 44)
-    172.17.0.6.8667 > c44d7fdcab82.8666: Flags <b>[S.]</b>, cksum 0x584c (incorrect -> 0xcb9a), seq 2871366438, ack 294968, win 29200
+    172.17.0.6.8667 > c44d7fdcab82.8666: Flags <b>[S.]</b>, cksum 0x584c (incorrect -> 0xcb9a), ack 294968, win 29200, length 0
 	0x0000:  4500 002c 0000 4000 4006 e29e ac11 0006  E..,..@.@.......
 	0x0010:  ac11 0005 21db 21da ab25 9326 0004 8038  ....!.!..%.&...8
 	0x0020:  6012 7210 584c 0000 0204 05b4            `.r.XL......
