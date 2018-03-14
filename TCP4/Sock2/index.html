@@ -1,1 +1,402 @@
 
+
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="20" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+        
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.github.io/Network/">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>Packet capture &Data analysis </b></h3>--------------------------</p><p><i>...with a side of R &Jupyter env</i></p>
+
+</i>
+
+
+Hey, kidz!
+
+
+
+
+
+How about learning a bit about R programming and Jupyter, today? 
+For networking purposes, of course!
+
+
+
+
+[---------------Prepare the env
+
+
+Today we'll be using a dockerized Jupyter image called (what else!) jupyter/r-notebook, 
+to which we will apply a few more changes, for own interest.
+
+
+
+<b>1) Create the container:</b>
+<span style="color:#FFCC00">
+ docker run --user=root -it --rm -p 8888:8888 jupyter/r-notebook
+</span>
+2) Once in the container:
+
+> Create a link to /bin/tar:
+<span style="color:#FFCC00">
+ root@bba43b7777d:~#  ln -s /bin/tar /bin/gtar
+  
+</span>
+> Run this bash script for a bunch of updates:
+<span style="color:#FFCC00">
+root@bba43b7777d:~# more run_it.sh
+#!/bin/bash
+
+apt-get update  
+apt-get install software-properties-common -y
+add-apt-repository -y "ppa:marutter/rrutter"
+add-apt-repository -y "ppa:marutter/c2d4u"
+apt-get update    
+apt-get install r-cran-igraph -y
+</span>
+
+> Run below inline R for installation of igraph:
+
+<span style="color:#FFCC00">
+root@bba43b7777d:~# R -e "require(devtools); install_version('igraph', version='1.0.1', repos='https://cran.rstudio.org/ ')" 
+</span>
+
+Good, now you can draw graphs.
+
+<b>3) Onto the next one... </b>
+
+We will be needing to install on this Jupyter container a very nice R package 
+to work with pcap! 
+You can get it from this repository link: https://github.com/hrbrmstr/crafter 
+(it offers info on installation, too!)
+
+...but we'll do all that right now:
+
+a) Install git
+<span style="color:#FFCC00">
+root@baa43b7777d:~# apt-get install git
+ </span>
+ 
+b) Install the necesary packages in order to proceed with R package installation:
+ <span style="color:#FFCC00">
+root@baa43b7777d:~# apt-get install autoconf libtool
+
+root@baa43b7777d:~# apt-get install libsqlite3-0 libpcap0.8 libpcap0.8-dev
+   </span> 
+    
+c) Clone R package repository:
+<span style="color:#FFCC00">
+root@baa43b7777d:~#  git clone https://github.com/pellegre/libcrafter
+</span>
+
+d) root@baa43b7777d:~#  cd libcrafter/libcrafter
+ 
+   From there, run autogen.sh script:
+  <span style="color:#FFCC00">
+  root@baa43b7777d:libcrafter/libcrafter#  ./autogen.sh
+ </span>
+  ..then, 
+ <span style="color:#FFCC00">
+   root@baa43b7777d:libcrafter/libcrafter# make && make install
+</span>
+
+
+[-----------Power up the Jupyter
+
+
+
+   Since you are a root user inside this container, you'll have to start the 
+jupyter notebook as per below example (with --allow-rot option):
+
+<span style="color:#FFCC00">
+root@bba43b97756d:~# <b>jupyter notebook --allow-root</b>
+[W 22:38:02.522 NotebookApp] WARNING: The notebook server is listening on all IP addresses
+and not using encryption. This is not recommended.
+[I 22:38:02.523 NotebookApp] The port 8888 is already in use, trying another port.
+
+[..........................snip..........................]
+    
+    Copy/paste this URL into your browser when you connect for the first time,
+    to login with a token:
+      <b>  http://localhost:8889/?token=loooooongnumbeeeeroverrrheeeere</b>
+</span>
+
+Copy that link into a browser. The localhost should be replaced with the 
+container's IP.
+
+<span style="color:#FFCC00">
+root@baa43b7777d:/home# ip  -f inet a s eth0 | grep -Po 'inet \K[\d.]+'
+172.17.0.2
+</span>
+
+You should reach Jupyter's home. And if you go in the right, <i>New-> R</i>, and a new tab
+should open, allowing you to program in R.
+
+[-----------Briefly, about R
+
+
+From terminal, simply type R:
+<span style="color:#FFCC00">
+root@baa43b7777dd:/home# R
+
+R version 3.3.2 (2016-10-31) -- "Sincere Pumpkin Patch"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> 
+> R.version
+               _                           
+platform       x86_64-pc-linux-gnu         
+arch           x86_64                      
+os             linux-gnu                   
+system         x86_64, linux-gnu           
+status                                     
+major          3                           
+minor          3.2                         
+year           2016                        
+month          10                          
+day            31                          
+svn rev        71607                       
+language       R                           
+version.string R version 3.3.2 (2016-10-31)
+nickname       Sincere Pumpkin Patch       
+> 
+
+</span>
+
+<b>Cramin` time!</b>
+
+
+<i>Variable:</i>
+<span style="color:#FFCC00">
+> x<-12
+> x
+[1] 12
+</span>
+<i>Functions:</i>
+<span style="color:#FFCC00">
+> rep("sup!", times =  sum(1, 3, 6) )
+ [1] "sup!" "sup!" "sup!" "sup!" "sup!" "sup!" "sup!" "sup!" "sup!" "sup!"
+</span>
+
+<i>Vectors:</i>
+<span style="color:#FFCC00">
+> 6:8
+[1] 6 7 8
+> seq(1, 9)
+[1] 1 2 3 4 5 6 7 8 9
+> 
+> wordz <- c('walk', 'the', 'plank')
+> wordz[1]
+[1] "walk"
+> 
+> length(wordz)
+[1] 3
+> 
+
+</span>
+
+<i>Matrices:</i>
+<span style="color:#FFCC00">
+> matrix<- 1:4
+> dim(matrix)<-c(2,2)
+> matrix
+     [,1] [,2]
+[1,]    1    3
+[2,]    2    4
+> 
+</span>
+
+<i>Factors (store categorical data):</i>
+<span style="color:#FFCC00">
+> pets <- c('meow', 'hamham', 'meow', 'hamham', 'moo')
+> pets.factor <-factor(c('meow', 'hamham', 'meow', 'hamham', 'moo'))
+> pets
+[1] "meow"   "hamham" "meow"   "hamham" "moo"   
+> pets.factor
+[1] meow   hamham meow   hamham moo   
+Levels: hamham meow moo
+> 
+</span>
+
+<i>Lists:</i>
+<span style="color:#FFCC00">
+> wild_list <- list("potatoes",w2="Vodka",desert="Coffee!!") 
+
+> wild_list[[1]]
+[1] "potatoes"
+>
+> wild_list$w2
+[1] "Vodka"
+>
+> wild_list[["desert"]]
+[1] "Coffee!!"
+> 
+</span>
+
+<i>Data Frames:</i>
+<span style="color:#FFCC00">
+> Wild_dfr <- data.frame( count=1:3,                    
+                          tiny_pets=c("piglet","kitten","puppy"), 
+                          food_portions=c(5,3,4) )
+> Wild_dfr
+  count tiny_pets food_portions
+1     1    piglet             5
+2     2    kitten             3
+3     3     puppy             4
+> 
+> Wild_dfr$tiny_pets
+[1] piglet kitten puppy 
+Levels: kitten piglet puppy
+> Wild_dfr$tiny_pets[1]
+[1] piglet
+Levels: kitten piglet puppy
+> Wild_dfr$food_portions <-as.vector(Wild_dfr$food_portions)
+> Wild_dfr$food_portions
+[1] 5 3 4
+> 
+</span>
+
+Use q() to quit R.
+ 
+ Good! We have assimilated some info. We're a bit comfortable with R.
+ Now, go back browser, where you have opened the R notebook, and let's practice a bit
+ drawing graphs:
+ 
+<i> Networks in igraph</i>
+
+Short examples. You mostly must focus on <i>plot()</i>
+
+a) A simple graph
+
+
+b) A full graph
+
+full_g1 <- make_full_graph(20)
+plot(empty_g1, vertez.size=10, vertex.label=NA)
+
+<insert here pics>
+
+Yuh, boy! We done here!
+
+
+[---------------PCAP or it didn't happen!
+
+
+
+Good! Let's make a small packet capture on our container.
+
+<span style="color:#FFCC00">
+root@baa43b7777dd:~# tcpdump -w test.pcap
+tcpdump: listening on eth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+^C363 packets captured
+363 packets received by filter
+0 packets dropped by kernel
+</span>
+
+Move the capture under crafter/pcaps
+<span style="color:#FFCC00">
+root@bba43b97756d:~# mv test.pcap /opt/conda/lib/R/library/crafter/pcaps
+</span>
+
+Now, back to Jupyter-R in browser. Time to check our pcap capture:
+
+1) Load/reload/install necessary packages
+  
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Material/moar_pics/ss1.png" align = "middle"  width="600" height = "385"></img>
+
+2) Check out that fabulous capture:
+
+[pic s11]
+
+3) You can also apply tail/head on the capture:
+
+[pic s2]
+
+4) Let's gather only TCP packets (no ARP, no IP, no Ethernet)
+
+[pic s21]
+
+5) ...and just for fun, create a filter  (using chksum and windowsize)
+
+[pic s3
+
+6) Install scatterplot3d
+
+<span style="color:#FFCC00">
+install.packages("scatterplot3d")
+</span>
+ 
+...and let's try to 3D it
+
+pic s4
+
+7) ...and the result
+
+pic s5
+
+
+...if u curious enough, try to make a 2D representation of the packets
+
+pic nice
+
+
+ 
+You did well for a first time ever with R introduction!
+
+
+See ya!
+===========================
+
+<i>To be read:</i>
+
+http://tryr.codeschool.com/
+
+http://www.lovemytool.com/blog/2010/07/practical-tcp-series-the-tcp-window-by-chris-greer.html
+
+http://jupyter-notebook-beginner-guide.readthedocs.io/en/latest/execute.html
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
