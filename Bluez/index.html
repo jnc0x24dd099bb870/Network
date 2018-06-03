@@ -71,9 +71,9 @@ root@tr0n:/home# ls
 Dockerfile    webish    webish.c
 root@tr0n:/home# 
 root@tr0n:/home#  apt-get update && apt-get install -y strace bluez bluetooth usbutils
-</span>
-[*** time for a coffee break*** ]
 
+[*** time for a coffee break*** ]
+</span>
       
 <i>(I know, you might get the impression you are still on the host, and not inside the container.
 Gawd dayum,  this --net=host, man... 
@@ -333,7 +333,9 @@ So, this is why I am using strace, if I choose Yes, strace will let me know what
 
 	  
 	  
+	
 Neat, aye?!
+	
 
 For those who want more, you could also check with tcpdump (run it form the host).
 
@@ -347,7 +349,8 @@ tcpdump -D
 [...snip....]
 </span>
 
-Just go for "tcpdump -vv -i bluetooth0", and let me know what you see.
+	
+Just go for "tcpdump -vv -i bluetooth0", and see what you can find.
 
 Further stuff, you can go ahead and try l2ping (that's like ping, but for bluetooth!), 
 hcidump-raw command (especially when you need to debug issues), and take a look at the  "lsmod| grep blue". 
