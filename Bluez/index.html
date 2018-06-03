@@ -1,1 +1,375 @@
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="20" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+       
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.github.io/Network/">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>(RFCOMM) Socket programming basics (II) </b></h3>--------------------------</p><p><i>...Bluetooth anyone?!</i></p>
+
+</i>
+
+
+Hello, there!
+
+
+
+I know, it's been a while since the last time I wrote something. Then again, look at the bright side,
+all those cookies would have made you fluffier by now. A break from now and then is good.
+
+As you can well recall, many moons ago I wrote a part one tutorial on socket programming basics. 
+Cannot complain, tho' - the rest of tutorials were quite nice and full of information, 
+having a different approach.
+
+Today, I have prepared the second part. Not so fast with the "yey! server-client architecture! gonna 
+multithread the bits out of it!". It's just a small, different, yet practical approach!
+<i>Being a self-learner is a kick in the gr0in - hard to adapt to others expectations. /yolo </i>
+      
+Anywayz,  prepare your environment for more networking enlightment ... and bluetooth!
+
+
+
+...and let's get down to business.
+
+
+[---------------Prepare thy environment
+
+
+Yes, "ahaha" image to be used again. (I think I mostly use this to force you reading my previous zines).
+Also, it was a good thing  we did kernel modules before, because we will be needing some device access.
+
+      
+1) Create a new container, with the necessary privileges, which will be used for bluetooth:
+
+
+<span style="color:#FFCC00">
+null@tr0n:~$ sudo docker  run   --privileged --net=host --cap-add=ALL --name=huoo  \
+-d  -v  /dev:/dev -v  /lib/modules:/lib/modules -v  /usr/src:/usr/src -ti ahaha 
+</span>
+
+2) After you start the container, there are updates and packages to install
+
+<span style="color:#FFCC00">
+root@tr0n:/home# ls
+Dockerfile    webish    webish.c
+root@tr0n:/home# 
+root@tr0n:/home#  apt-get update && apt-get install -y strace bluez bluetooth usbutils
+</span>
+[*** time for a coffee break*** ]
+
+      
+<i>(I know, you might get the impression you are still on the host, and not inside the container.
+Gawd dayum,  this --net=host, man... 
+Anywayz, if you do run a "docker" command,and it won't work,  you are inside the container.)</i>
+
+Now, lets' start the services, and see if any errors (... and how to fix them! Aww, yiss!)
+
+First thing, check if /var/run/dbus folder with below files have been created:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# ls /var/run/dbus/
+pid                system_bus_socket 
+</span>
+
+Chances are they did not, and you would get stuck with this horrible error when starting the daemon:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# bluetoothd -n
+bluetoothd[2777]: Bluetooth daemon 4.101
+D-Bus setup failed: Failed to connect to socket /var/run/dbus/system_bus_socket: No such file or directory
+bluetoothd[2777]: Unable to get on D-Bus
+</span>
+
+...so just create the dbus folder, and configure it manually:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# mkdir -p /var/run/dbus
+root@tr0n:/home# dbus-uuidgen --ensure
+root@tr0n:/home# dbus-daemon --system --fork
+root@tr0n:/home# ls /var/run/dbus
+pid  system_bus_socket
+</span>
+
+Success!
+
+Now, start the daemon:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# bluetoothd -n
+</span>
+
+
+Next, start dbus service:
+<span style="color:#FFCC00">
+root@tr0n:/home# service dbus start
+</span>
+Now, you might get errors even here... *roll_eyes*.
+
+So, if you like it better put a strace on it ... and investigate:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# strace service dbus start
+execve("/usr/sbin/service", ["service", "dbus", "start"], [/* 10 vars */]) = 0
+brk(0)                                  = 0x55cbed4d8000
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f740b8e4000
+[...snip...]
+open("/etc/init.d/dbus", O_RDONLY)      = 3
+fcntl(3, F_DUPFD, 10)                   = 10
+close(3)                                = 0
+[...snip....]
+stat("/usr/bin/dbus-daemon", 0x7ffe64369d10) = -1 ENOENT (No such file or directory)
+[....snip....]
+</span>
+
+AHA! Apparently, there is no such thing as dbus-daemon file. Let's see if that's true:
+
+*uses 1337-ist find command*   
+<span style="color:#FFCC00">
+root@tr0n:/home# find / -name dbus-uuidgen
+root@tr0n:/home#/bin/dbus-uuidgen
+^C
+</span>
+
+So, the path was all wrong - fix this by modifying /etc/init.d/dbus with the proper path.
+
+(I have found same issue for another file, but you have to strace and find it.)
+
+Good, if all issues are fixed, start the dbus service once again:
+<span style="color:#FFCC00">
+root@tr0n:/home# service dbus start
+root@tr0n:/home# service dbus status
+ * dbus is running
+</span>
+
+Let's do some checking:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# hcitool dev
+Devices:
+	hci0	00:XX:XX:XX:CC:11
+    
+root@tr0n:/home# hciconfig hci0 up    
+hci0:	Type: BR/EDR  Bus: USB
+	BD Address: 00:XX:XX:XX:CC:11 ACL MTU: 1021:8  SCO MTU: 64:1
+	UP RUNNING PSCAN 
+	RX bytes:1611 acl:0 sco:0 events:82 errors:0
+	TX bytes:2067 acl:0 sco:0 commands:82 errors:0
+
+</span>
+
+So far, so good...
+
+Let's see if we can scan for something...
+<span style="color:#FFCC00">
+root@tr0n:/home# hcitool scan
+Scanning ...
+root@tr0n:/home# 
+</span>
+      
+What?! 
+      
+<span style="color:#FFCC00">
+root@tr0n:/home# hcitool lescan
+Set scan parameters failed: Input/output error
+</span>
+
+What?! waht?? ..WAT?!?!
+
+Ahkay, it looks like my bluez is broken. (Some dudez were able to fix their issues with a simple
+bluetooth services restart, but this was not the happy scenario)
+
+Well, time to use a newer bluez version...install xz-utils, make, wget, a newer version of bluez, 
+and *takes a deep breath* a few more libraries!
+
+<span style="color:#FFCC00">
+
+root@tr0n:/home# apt-get install -y libglib2.0-dev libical-dev libreadline-dev libudev-dev \
+libdbus-1-dev libdbus-glib-1-dev
+root@tr0n:/home# apt-get install make
+root@tr0n:/home# apt-get install wget
+root@tr0n:/home# apt install xz-utils
+root@tr0n:/home# apt-get install libudev-dev libical-dev libreadline6-dev libdbus-1-dev libglib2.0-dev
+root@tr0n:/home# apt-get install wget https://www.kernel.org/pub/linux/bluetooth/bluez-5.41.tar.xz
+
+[*** just in time for another coffee break ***]
+</span>
+
+Good! Configure your bluez!
+
+<span style="color:#FFCC00">
+root@tr0n:/home# tar xf bluez-5.41.tar.xz 
+root@tr0n:/home# cd bluez-5.41
+root@tr0n:/home/bluez-5.41#./configure
+root@tr0n:/home/bluez-5.41# make && make install
+
+[ *** coffee break again *** ]
+</span>
+
+Check new version:
+
+<span style="color:#FFCC00">
+root@tr0n:/home#hcitool | grep ver
+hcitool - HCI Tool ver 5.41
+</span>
+
+Now, restart bluetooth service, and let's try the scanning again:
+<i> ..from obvious paranoia issues, 
+I do tend to chance IPs, mac address and so... same here!</i>
+<span style="color:#FFCC00">
+root@tr0n:/home# hcitool scan       
+Scanning ...
+      XX:XX:XX:XX:36:XX	  [TV] Samsung
+      XX:12:XX:XX:26:XX   Blueberry (Old) Phone
+</span>
+
+Now we're talking!
+
+Obviously, we're gonna do some testing with the phone, because that's my neighbors TV ... xD
+
+Right! So, a few more packages to install:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# apt install bluez-hcidump
+root@tr0n:/home# apt-get install  libbluetooth-dev
+</span>
+
+Yey! Time to make a client, and see if this container can bother my phone:
+
+Before diving into the small rfcomm sockets client code (that I copied-pasted, and simply modified 
+the hardcoded part like a total j3rk that I am), I must give the credits to this awesome tutorial: 
+<a href>https://people.csail.mit.edu/albert/bluez-intro/index.html</a>
+
+... and obviously, you will have to read it, 'cause how can you party when you have not
+figured out what that code does, huh-huh?! (<i>in my defence, I do need moar people to find my blog, 
+therefore writing stuff that everyone googles about might help me with some popularity. 
+Do ya feel me nao?!</i>)
+
+<span style="color:#FFCC00">
+#include&#060;stdio.h>
+#include&#060;unistd.h>
+#include&#060;sys/socket.h>
+#include&#060;bluetooth/bluetooth.h>
+#include&#060;bluetooth/rfcomm.h>
+
+int main(int argc, char **argv)
+{
+    struct sockaddr_rc addr = { 0 };
+    int s, status;
+    char dest[18] = "XX:12:XX:XX:26:XX";
+
+    s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+
+    addr.rc_family = AF_BLUETOOTH;
+    addr.rc_channel = (uint8_t) 1;
+    str2ba( dest, &addr.rc_bdaddr );
+
+    status = connect(s, (struct sockaddr *)&addr, sizeof(addr));
+
+    if( status == 0 ) {
+        status = write(s, "huehue", 6);
+    }
+
+    if( status < 0 ) perror("uh oh");
+
+    close(s);
+    return 0;
+}
+
+</span>
+
+
+Compile it:
+
+<span style="color:#FFCC00">
+ root@nullQ:/home#gcc client.c -lbluetooth -o client
+</span>
+ 
+And run it... wait for it...! there's a trick!  Before running it, I suggest you apply strace:
+
+<span style="color:#FFCC00">
+root@tr0n:/home# strace ./client
+</span>
+
+... and you will see why. 
+  
+Once I run the program, my phone will let me know that some punk wants to connect...
+
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Material/moar_pics/phone.png" align = "middle"  width="360" height = "365"></img>
+
+
+So, this is why I am using strace, if I choose Yes, strace will let me know what is going on:
+
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Material/moar_pics/yey1.png" align = "middle"  width="600" height = "200"></img>
+
+... and if I say "nah, man... I ain't got time for this!", well...strace is such a nice good guy:
+
+<insert pic here>
+
+ <img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Material/moar_pics/yey2.png" align = "middle"  width="600" height = "200"></img>
+
+Neat, aye?!
+
+For those who want more, you could also check with tcpdump (run it form the host).
+
+If you run "tcpdump -D", you will notice a bluetooth option:
+
+<span style="color:#FFCC00">
+tcpdump -D
+1.docker0 [Up, Running]
+[....snip....]
+11.bluetooth0 (Bluetooth adapter number 0)
+[...snip....]
+</span>
+
+Just go for "tcpdump -vv -i bluetooth0", and let me know what you see.
+
+Further stuff, you can go ahead and try l2ping (that like ping, but for bluetooth!), 
+hcidump-raw command (especially when you need to debug issues), and take a look at the  "lsmod| grep blue". 
+
+
+
+Well, that's a wrap for today! I hope you enjoyed this, since it was a very light zine.
+
+In case you are wondering if more blue stuff coming on your way, well.. since we do have a working environment...
+let me think about it!
+  
+  
+See you soon!
+  
+
+=========================
+  
+https://people.csail.mit.edu/albert/bluez-intro/index.html
+  
+  
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
 
