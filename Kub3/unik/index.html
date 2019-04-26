@@ -1,0 +1,812 @@
+
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="20" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+        
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.tumblr.com/k3kZ">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>Rumprun Unikernels</b></h3>--------------------------</p><p><i>...with a hint of network namespaces.   </i></p>
+
+</i>
+
+
+Oh, hello, hello my knowledge junkies! Long time no seen!
+
+
+I hope you had a nice and sunny Summer. I am just in time for ...
+oh, sweet couch potatoes! even X-mas is gone! Obviously, I'm late again... 
+
+So allow me to pour some Vodka in my coffee, and we'll be going on a journey: 
+today we have a small presentation about *apotheotic music* Unikernels!
+
+And not just any kind of Unikernels, Rumprun Unikernels!!1! 
+(they make everything else feel like a walk in the park). 
+No need to get scared though, they are full of potential, extraordinary phun to play with, 
+and even if they are made of C and assembly code (oh, so much win!), 
+they are amazing even in the cloud  (wow, I went full mainstream over here) ; 
+truth be told, the Cl0ud vendors will fear unikernels the most. Money talks.
+And Unikernels will be able (if not already) to trick the bill like a bunch of gangstas going after meth. 
+Ah, sweet Chaos! 
+
+
+Now, time to get busy! So,  grab your baked cookies and warm coffee,
+the time has come to feed your hungry mind. 
+
+
+
+-------------------] Here be dragonZ
+
+
+
+Time to quote the Rumprun Wiki: 
+<i></i>"The Rumprun unikernel enables running POSIX applications as unikernels on top of
+embedded systems and cloud hypervisors such as Xen and KVM."</i>
+
+
+Uuu..sounds exciting, doesn't it?! 
+You probably now regret you didn't spend more time with POSIX during this
+last summer, huh?
+
+
+
+-------------------] Prepare thy Environment
+
+
+
+<i> ... but wait, what about Docker containers?! </i>
+
+
+Fear not, I iz here!
+
+For now, let's build a tiny image for our future container:
+
+
+<span style="color:#FFCC00">
+root@tr0n:/home/buildz# more Dockerfile
+FROM ubuntu:16.04
+
+RUN apt-get update -y
+
+RUN apt-get install gcc -y 
+
+RUN apt-get update -y &&  apt-get install git -y 
+
+# install a bunch of necessary packages
+
+RUN  apt-get install libc6-armel-cross libc6-dev-armel-cross  \
+        binutils-arm-linux-gnueabi \
+        libncurses5-dev  \
+        qemu-user-static    \
+        inotify-tools  qemu  -y
+
+RUN apt-get install genisoimage -y
+
+# ...well, more packages 
+
+RUN apt-get install -y pkg-config \
+        && apt-get install -y openjdk-8-jdk \
+        && apt-get install -y cpio \
+        && apt-get install -y mercurial \
+        && apt-get install -y unzip \
+        && apt-get install -y zip \
+        && apt-get install zlib1g-dev -y
+
+RUN cd /opt/ && git clone http://repo.rumpkernel.org/rumprun &&\
+        cd /opt/rumprun &&\
+        git submodule update --init 
+    
+
+WORKDIR /opt/rumprun
+
+#build it 
+
+RUN ./build-rr.sh hw 
+
+WORKDIR /opt/rumprun
+ 
+#RUN echo "export PATH=$&#123;PATH&#125;:$(pwd)/rumprun/bin" >> /etc/environment
+
+</span>
+
+
+And build it as usual...
+
+<span style="color:#FFCC00">
+root@tr0n:/home/buildz# docker build -t unikernix .
+</span>
+
+ [ .... Wild break to sip more coffee .... ]
+
+...and once it's done, do a flip from excitement, and a check:
+
+<span style="color:#FFCC00">
+root@tr0n:/home/buildz# docker images | grep '.rnix*'
+unikernix                            latest             36280uc0832        2 days ago          2.23GB
+</span>
+
+
+...gawd, that's one big image! 
+
+
+
+<i> I'm onto the next one! Onto the next one! </i>
+
+
+Now, it's time to build a tiny vicious container, which will host the unikernel.
+
+
+We should provide some access to devices filesystem (you'll see why...)
+
+
+<span style="color:#FFCC00">
+root@tr0n:~# docker run --name kek1 --privileged=true \
+			--hostname=kek1 -v /dev:/dev -ti unikernix /bin/bash
+root@kek1:/opt/rumprun# 
+</span>
+
+My environment:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun# more /etc/environment 
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/opt/rumprun"
+export PATH=$PATH:rumprun/bin
+root@kek1:/opt/rumprun# 
+</span>
+
+And do some checking:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun# 
+root@kek1:/opt/rumprun# x[press tab] 
+x86_64                          x86_64-linux-gnu-gcc            x86_64-linux-gnu-gcov-tool-5    x86_64-linux-gnu-size           xzcat
+x86_64-linux-gnu-addr2line      x86_64-linux-gnu-gcc-5          x86_64-linux-gnu-gprof          x86_64-linux-gnu-strings        xzcmp
+x86_64-linux-gnu-ar             x86_64-linux-gnu-gcc-ar         x86_64-linux-gnu-ld             x86_64-linux-gnu-strip          xzdiff
+x86_64-linux-gnu-as             x86_64-linux-gnu-gcc-ar-5       x86_64-linux-gnu-ld.bfd         x86_64-pc-linux-gnu-pkg-config  xzegrep
+x86_64-linux-gnu-c++filt        x86_64-linux-gnu-gcc-nm         x86_64-linux-gnu-ld.gold        xargs                           xzfgrep
+x86_64-linux-gnu-cpp            x86_64-linux-gnu-gcc-nm-5       x86_64-linux-gnu-nm             xauth                           xzgrep
+x86_64-linux-gnu-cpp-5          x86_64-linux-gnu-gcc-ranlib     x86_64-linux-gnu-objcopy        xdg-user-dir                    xzless
+x86_64-linux-gnu-dwp            x86_64-linux-gnu-gcc-ranlib-5   x86_64-linux-gnu-objdump        xdg-user-dirs-update            xzmore
+x86_64-linux-gnu-elfedit        x86_64-linux-gnu-gcov           x86_64-linux-gnu-pkg-config     xjc                             
+x86_64-linux-gnu-g++            x86_64-linux-gnu-gcov-5         x86_64-linux-gnu-ranlib         xsubpp                          
+x86_64-linux-gnu-g++-5          x86_64-linux-gnu-gcov-tool      x86_64-linux-gnu-readelf        xz                              
+root@kek1:/opt/rumprun# x
+</span>
+
+
+We are good to go!
+
+<span style="color:#FFCC00">
+
+root@kek1:/opt/rumprun# mkdir -p rumpish
+root@kek1:/opt/rumprun# cd rumpish/
+root@kek1:/opt/rumprun/rumpish#  export PATH=$&#123;PATH&#125;:$(pwd)/rumprun/bin
+root@kek1:/opt/rumprun/rumpish# 
+</span>
+
+Our 1337 code (rofl!) that will be used for this small testing:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# more 44.c
+#include&#60;stdio.h>
+#include&#60;stdlib.h>
+#include&#60;unistd.h>
+#include&#60;netdb.h>
+#include&#60;arpa/inet.h>
+#include&#60;string.h>
+#include&#60;sys/stat.h>
+#include&#60;fcntl.h>
+#include&#60;sys/types.h>
+#include&#60;netinet/in.h>
+
+
+
+char webish[]="HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 2333\n\n\
+&#60;html>&#60;head>&#60;title>FeelinGumpy&#60;/title> &#60;style>body{background-color:#F444FF}&#60;/style>&#60;/head>  \
+&#60;body>&#60;center>&#60;h2>Hiya, Gump!&#60;/h2>&#60;br> \
+&#60;img src=\"https://66.media.tumblr.com/090a03541b6464732e5ce44be0c9216f/tumblr_oto03dhbkv1ww0aaho2_500.gif\"> \
+&#60;/center>&#60;/body>&#60;/html>";
+
+int main(int  argc, char **argv)
+{
+  struct sockaddr_in server_addr,client_addr;
+  socklen_t sin_len=sizeof(client_addr);
+  int server,client;
+  char buf[666];
+  int on=1;
+
+  server=socket(AF_INET,SOCK_STREAM,0);
+  
+
+  setsockopt(server,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(int));
+  server_addr.sin_family=AF_INET;
+  server_addr.sin_addr.s_addr=INADDR_ANY;
+  server_addr.sin_port=htons(80);
+  
+  bind(server,(struct sockaddr*)&server_addr,sizeof(server_addr))==0;
+  
+  listen(server,10)==0;
+
+
+    client=accept(server,(struct sockaddr*)&client_addr,&sin_len);
+    printf("client connection\n");
+
+ // close(server);
+   memset(buf,0,sizeof(buf));
+   read(client,buf,sizeof(buf)-1);
+   printf("%s\n",buf);
+
+
+
+   write(client,webish,sizeof(webish)-1);
+
+ //  close(client);
+ // printf("closing....\n");
+   
+
+return 0;
+}
+</span>
+
+For all those OCD fans out-there, when it comes to counting characters, use dirty tricks!
+(there's a Content-Length over there!)
+
+<span style="color:#FFCC00">
+root@tr0n:~/chi# tr -d [,] &#60; ciu.txt | wc -m
+328
+root@tr0n:~/chi# 
+root@tr0n:~/chi# 
+</span>
+
+
+-------------------] Time to bake pies!
+
+
+Let's build our environment:
+
+1) Build:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# 
+root@kek1:/opt/rumprun/rumpish# x86_64-rumprun-netbsd-gcc 44.c -o 44
+root@kek1:/opt/rumprun/rumpish#
+root@kek1:/opt/rumprun/rumpish# ls
+44  44.c
+root@kek1:/opt/rumprun/rumpish#
+
+</span>
+
+2) Bake:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish#
+root@kek1:/opt/rumprun/rumpish# rumprun-bake hw_generic 44.bin 44
+
+!!!
+!!! NOTE: rumprun-bake is experimental. syntax may change in the future
+!!!
+
+root@kek1:/opt/rumprun/rumpish# 
+root@kek1:/opt/rumprun/rumpish# ls
+44  44.bin  44.c
+root@kek1:/opt/rumprun/rumpish# 
+</span>
+
+3) ... and run:
+
+Let's test if no errors:
+
+ <span style="color:#FFCC00">
+ root@kek1:/opt/rumprun/rumpish# rumprun qemu -g '-curses' -i 44.bin
+
+!!!
+!!! NOTE: rumprun is experimental. syntax may change in the future
+!!!
+
+warning: TCG doesn't support requested feature: CPUID.01H:ECX.vmx [bit 5]
+</span>
+
+You should see below screen:
+
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Kub3/pics/baked_and_run.png" align = "middle"  width="570" height = "382"></img>
+
+
+Press ESC+2, then q, to get out from qemu.
+
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Kub3/pics/exit.png" align = "middle"  width="670" height = "152"></img>
+
+
+Noice! Now, provide a network - it must launch on a network - create a tap device:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# 
+root@kek1:/opt/rumprun/rumpish#  ip tuntap add tap0 mode tap
+root@kek1:/opt/rumprun/rumpish#  ip addr add 10.0.120.100/24 dev tap0
+root@kek1:/opt/rumprun/rumpish#  ip link set dev tap0 up
+root@kek1:/opt/rumprun/rumpish# 
+root@kek1:/opt/rumprun/rumpish#  ping -c 2  10.0.120.100
+PING 10.0.120.100 (10.0.120.100) 56(84) bytes of data.
+64 bytes from 10.0.120.100: icmp_seq=1 ttl=64 time=0.044 ms
+64 bytes from 10.0.120.100: icmp_seq=2 ttl=64 time=0.083 ms
+
+--- 10.0.120.100 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1002ms
+rtt min/avg/max/mdev = 0.044/0.063/0.083/0.021 ms
+</span>
+
+
+Now, let's run it again:
+
+
+<span style="color:#FFCC00">
+ rumprun qemu -g '-curses' \
+        -I if,vioif,'-net tap,script=no,ifname=tap0'\
+        -W if,inet,static,10.0.120.102/24 \
+        -i 44.bin
+</span>
+
+Same purple on black output should appear, with no errors! Ha! ...
+
+Only this time, we provided an IP, and even port 80 declared in our code:
+
+So, from another terminal, login in again onto kek1 container, and check:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun# curl -v http://10.0.120.102:80
+* Rebuilt URL to: http://10.0.120.102:80/
+*   Trying 10.0.120.102...
+* Connected to 10.0.120.102 (10.0.120.102) port 80 (#0)
+> GET / HTTP/1.1
+> Host: 10.0.120.102
+> User-Agent: curl/7.47.0
+> Accept: */*
+> 
+&#60; HTTP/1.1 200 OK
+&#60; Content-Type: text/html
+&#60; Content-Length: 2333
+&#60; 
+* transfer closed with 2070 bytes remaining to read
+* Closing connection 0
+curl: (18) transfer closed with 2070 bytes remaining to read
+&#60;html>&#60;head>&#60;title>FeelinGumpy&#60;/title> &#60;style>body{background-color:#F444FF}&#60;/style>&#60;/head>  &#60;body>&#60;center>&#60;h2>Hiya, Gump!&#60;/h2>&#60;br>
+&#60;img src="https://66.media.tumblr.com/090a03541b6464732e5ce44be0c9216f/tumblr_oto03dhbkv1ww0aaho2_500.gif">
+&#60;/center>&#60;/body>&#60;/html>
+root@kek1:/opt/rumprun# 
+</span>
+
+It works! Yey! 
+
+<i> Yeah, it works... but what's the point?! How can I access the page? </i>
+
+Well, luckily, we can apply port forwarding.
+First thing first, install netcat traditional ( apt-get install netcat-traditional )
+
+<b>[From terminal one]</b>- forward trafic from port 80 to 172.17.0.2 (our container) on port 8080
+
+<span style="color:#FFCC00">
+ root@kek1:/opt/rumprun/rumpish# nc -l -p 8080 -c 'nc 10.0.120.102 80'
+</span>
+
+
+</br>
+
+<b>[From terminal two - from vm ]</b> - forward traffic from port 8080 container to localhost vm on port 8666
+
+<span style="color:#FFCC00">
+root@tr0n:/makey# nc -l -p 8666 -c 'nc 172.17.0.2 8080'
+</span>
+
+
+You now should be able to access the page content from http://localhost:8666
+
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Kub3/pics/forward_response.png" align = "middle"  width="670" height = "582"></img>
+
+
+Now, don't quit qemu, just yet ... and from another terminal, let's see the process:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun# ps -ef | grep qemu
+
+root       801   776  7 21:50 pts/9    00:00:01 qemu-system-x86_64 -net 
+nic,model=virtio,macaddr=52:54:00:8d:20:50 
+-net tap,script=no,ifname=tap0 -no -kvm -m 64 -curses -kernel
+44.bin -append  {,,  ."net" :  {,,  .."if":.."vioif0",,  .."type":."inet",,
+.."method":."static",, 
+.."addr":."10.0.120.102",,  .."mask":."24",,  .},,  ."cmdline": "44.bin",, 
+},, 
+root       807   608  0 21:50 pts/11   00:00:00 grep --color=auto qemu
+</span>
+
+Hmm... this looks like different from how we ran the qemu command.
+Let's launch it now with a script based on how that ps output looked like:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# 
+root@kek1:/opt/rumprun/rumpish# more run_rumpy.sh 
+#!/bin/bash
+
+
+RUMPCONFIG=$(cat &#60;&#60;EOM 
+{
+"rc": [
+],
+"net": {
+"if": "vioif0",
+"type": "inet",
+"method": "static",
+"addr": "10.0.120.102",
+"mask": "24" },
+"cmdline": "44.bin"
+}
+EOM
+)
+
+RUMP_CONFIG=$(echo "$&#123;RUMPCONFIG&#125;" | sed -e 's/,/,,/g' | tr '\n' ' ')
+
+qemu-system-x86_64 \
+ -no-kvm -m 64   \
+ -curses        \
+ -kernel 44.bin \
+ -net nic,model=virtio,macaddr=52:54:00:8d:20:50 \
+ -net tap,script=no,ifname=tap0 \
+ -append "${RUMP_CONFIG}"
+
+</span>
+
+Provide the execution rights:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# chmod +x run_rumpy.sh 
+</span>
+
+... and run:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# ./run_rumpy.sh
+warning: TCG doesn't support requested feature: CPUID.01H:ECX.vmx [bit 5]
+
+
+root@kek1:/opt/rumprun/rumpish# 
+</span>
+
+
+Magic!
+
+
+
+-------------------] No hops, please!
+
+
+Maybe all that port forwarding isn't quite the ultimate pièce de résistance,
+but it surely is handy!
+
+So, we need to take another approach! 
+
+
+-------------------] I need to retreat in my bubble!!!
+
+
+Here comes network namespaces! And there is a lot ... as in *a lot* to talk about namespaces ... 
+And no worries, we will take time, and take a better look at them in our next zines.
+
+
+So we'll just focus a bit on the "ip netns" command.
+
+Briefly put, ip netns will allow you to execute commands in a space that is considered isolated
+(in the namespace, that is):
+
+Why would you do this:
+<span style="color:#FFCC00">
+root@tr0n:/home/makey# docker exec 7c5c364fea11  cat /sys/devices/virtual/net/eth0/address
+02:42:ac:11:00:02
+</span>
+
+When you can do this:
+<span style="color:#FFCC00">
+root@tr0n# ip netns exec 7c5c364fea11 cat /sys/devices/virtual/net/eth0/address
+02:42:ac:11:00:02
+</span>
+
+
+The laziness:
+
+<span style="color:#FFCC00">
+root@tr0n:/home/makey# ls -ltr /sys/fs/cgroup/devices/docker/ | grep '^d'
+drwxr-xr-x 2 root root 0 Feb  3 02:34 7c5c364fea114a125cd49739e25fb88d97d8fbdf832953e9d094473555855ecc
+</span>
+
+So today, you have to check this small Makefile... run it on the vm's side:
+(...it might not work from a first try ... but what does anywayz?!)
+<span style="color:#FFCC00">
+root@tr0n:/home/makey# more Makefile 
+.PHONY: all  step_1 step_2 step_3 step_4 step_5
+
+MY_PID=$(shell docker inspect -f '{{.State.Pid}}' kek1)
+
+DOKY_ID=$(shell docker ps | grep kek1 | awk {'print $$1'})
+
+DOKY_VT=$(shell ip netns exec $(DOKY_ID) cat /sys/devices/virtual/net/eth0/address | tr -d ':')
+
+DOKY_VTP=vtap$(shell ip netns exec $(DOKY_ID) cat /sys/devices/virtual/net/eth0/address | tr -d ':' | grep -o '.\{6\}$$' )
+
+DOKY_IP=$(shell ip netns exec $(DOKY_ID)  ip addr show dev eth0 | grep 'inet ' | cut -d' ' -f6)
+
+GW=$(shell ip netns exec $(DOKY_ID) ip -o route get 8.8.8.8 | cut -d' ' -f3)
+
+TAPDEV_SYSFS=$(shell ip netns exec $(DOKY_ID) find /sys/devices/virtual/net -name dev -type f)
+TAPDEV=$(shell ip netns exec $(DOKY_ID) cat $(TAPDEV_SYSFS))
+
+DOKY_CGRP=/sys/fs/cgroup/devices/docker/7c5c364fea114a125cd49739e25fb88d97d8fbdf832953e9d094473555855ecc 
+
+WRITE=$(shell echo "c $(TAPDEV) rwm" >${DOKY_CGRP}/devices.allow)
+
+HEH=$(shell echo $(TAPDEV) |  tr : ' ' )
+HUE=$(shell docker exec $(DOKY_ID)  mknod /dev/tap0 c $(HEH) )
+
+all: step_1 step_2 step_3 step_4 step_5
+ 
+ 
+help:
+	@echo ""
+	@echo "-- Help Menu"
+	@echo ""
+	@echo "   1. make step_1      - create folder"
+	@echo "   2. make step_2      - create soft link"
+	@echo "   3. make step_3      - new interface and dns"
+	@echo "   4. make step_4      - allow devices"
+	@echo "   5. make step_5      - create device tap0"
+ 
+
+step_1:
+	@echo "create /var/run/netns"
+	@mkdir -p /var/run/netns
+	@echo "ln -sfT /proc/$(MY_PID)/ns/net /var/run/netns/$(DOKY_ID)"
+
+step_2:
+	@echo "create soft link"
+	@echo "create softlink /proc/$(MY_PID)/ns/net /var/run/netns/$(DOKY_ID)"
+	@ln -sfT /proc/$(MY_PID)/ns/net /var/run/netns/$(DOKY_ID)
+	@echo "show ip"
+	@ip netns exec $(DOKY_ID)  ip -s link show eth0
+
+
+step_3:
+	@ip netns exec $(DOKY_ID)  ip link add link eth0 name $(DOKY_VTP) type macvtap mode bridge
+	@ip netns exec $(DOKY_ID)  ip link set dev $(DOKY_VTP) up
+	@ip netns exec $(DOKY_ID)  ip -o route get 8.8.8.8 | cut -d' ' -f3	
+	
+
+step_4:
+	@ echo "c $&#123;TAPDEV&#125; rwm" >${DOKY_CGRP}/devices.allow
+
+
+step_5:
+	@$(HUE)
+
+
+check:
+	@echo "Starting starting container"
+	@docker ps
+	@echo "Started as daemon. "
+
+docker_ip_mask:
+	@echo "$(DOKY_IP)"
+
+pid:
+	@echo "get PID:"
+	@(docker inspect -f '{{.State.Pid}}' kek1)
+
+check_vtap:
+	@echo "check vtap name"
+	@echo "$(DOKY_VT)"
+	@echo "$(DOKY_VTP)" 
+	@echo "$(DOKY_CGRP)"
+
+check_gateway:
+	echo "$(GW)"
+
+docker_pid:
+	@printf "docker pid  $(MY_PID) \n"
+
+list:
+	@echo "ls /proc/$(MY_PID)"
+	@ls /proc/$(MY_PID)/
+	@echo "list /var/run/netns/$(DOKY_ID)"
+	@ls -ltr /var/run/netns/$(DOKY_ID)
+
+ccc:
+	@echo "$(HEH)"
+
+</span>
+
+
+Create properties with: 
+
+<span style="color:#FFCC00">
+root@tr0n:/home/makey#
+root@tr0n:/home/makey# make step_1 step_2 step_3 step_4 step_5
+</span>
+
+Wild checks:
+
+<span style="color:#FFCC00">
+
+root@tr0n:/home/makey# make docker_pid
+docker pid  32407 
+root@tr0n:/home/makey#
+root@tr0n:/home/makey# make list
+ls /proc/32407
+attr	   clear_refs	    cpuset   fd       limits	 mem	     net	oom_score      personality  schedstat  smaps_rollup  status   timerslack_ns
+autogroup  cmdline	    cwd      fdinfo   loginuid	 mountinfo   ns		oom_score_adj  projid_map   sessionid  stack	     syscall  uid_map
+auxv	   comm		    environ  gid_map  map_files  mounts      numa_maps	pagemap        root	    setgroups  stat	     task     wchan
+cgroup	   coredump_filter  exe      io       maps	 mountstats  oom_adj	patch_state    sched	    smaps      statm	     timers
+list /var/run/netns/7c5c364fea11
+lrwxrwxrwx 1 root root 18 Feb  3 00:45 /var/run/netns/7c5c364fea11 -> /proc/32407/ns/net
+root@tr0n:/home/makey# make check_gateway
+echo "172.17.0.1"
+172.17.0.1
+root@tr0n:/home/makey# make docker_ip_mask
+172.17.0.2/16
+root@tr0n:/home/makey#
+</span>
+
+
+And some checkin' on container's side:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# ls /sys/devices/virtual/net/    
+eth0  lo  vtap110002
+
+
+root@kek1:/opt/rumprun/rumpish# more  /sys/devices/virtual/net/vtap110002/address 
+c2:1e:2f:b4:3b:41
+</span>
+
+
+
+-------------------] Re-invent the wheel!
+
+
+So, after applying all the changes with Makefile,
+our previous run_rumpish.sh script can be re-written as below script:
+
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# more run_conty_rumpy.sh 
+#!/bin/bash
+
+
+
+RUMPCONFIG=$(cat &#60;&#60;EOM 
+{
+"env": "DNS_RESOLVER=8.8.8.8",
+"rc": [
+],
+"net": {
+	"if": "vioif0",
+	"type": "inet",
+	"method": "static",
+	"addr": "172.17.0.2",
+	"gw" : "172.17.0.1",
+	"mask": "16" 
+	},
+	"cmdline": "33.bin"
+}
+EOM
+)
+
+RUMP_CONFIG=$(echo "$&#123;RUMPCONFIG&#125;" | sed -e 's/,/,,/g' | tr '\n' ' ')
+
+qemu-system-x86_64 \
+ -no-kvm -m 500   \
+ -curses        \
+ -kernel 44.bin \
+ -net nic,model=virtio,macaddr=c2:1e:2f:b4:3b:41 \
+ -net tap,fd=3 \
+ -append "${RUMP_CONFIG}"  3<>/dev/tap0 
+ 
+</span>
+
+
+DNS looks pretty important here, huh?
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# more /etc/resolv.conf 
+# Dynamic resolv.conf(5) file for glibc resolver(3) generated by resolvconf(8)
+#     DO NOT EDIT THIS FILE BY HAND -- YOUR CHANGES WILL BE OVERWRITTEN
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+</span>
+
+Gibt rights, and execute:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# chmod +x run_conty_rumpy.sh 
+root@kek1:/opt/rumprun/rumpish# ./run_conty_rumpy.sh 
+</span>
+
+Let's see if it works, from another terminal (on the virtual machine, not on container):
+<span style="color:#FFCC00">
+root@tr0n:/home/makey#  curl -v http://172.17.0.2:80
+* Rebuilt URL to: http://172.17.0.2:80/
+*   Trying 172.17.0.2...
+* Connected to 172.17.0.2 (172.17.0.2) port 80 (#0)
+> GET / HTTP/1.1
+> Host: 172.17.0.2
+> User-Agent: curl/7.47.0
+> Accept: */*
+> 
+&#60; HTTP/1.1 200 OK
+&#60;Content-Type: text/html
+&#60;Content-Length: 2333
+&#60;
+* transfer closed with 2070 bytes remaining to read
+* Closing connection 0
+curl: (18) transfer closed with 2070 bytes remaining to read
+&#60;html>&#60;head>&#60;title>FeelinGumpy&#60;/title> &#60;style>body{background-color:#F444FF}&#60;/style>&#60;/head>  &#60;body>&#60;center>&#60;h2>Hiya, Gump!&#60;/h2>&#60;br>
+&#60;img src="https://66.media.tumblr.com/090a03541b6464732e5ce44be0c9216f/tumblr_oto03dhbkv1ww0aaho2_500.gif">
+&#60;/center>&#60;/body>&#60;/html> </center></body></html>root@tron-VirtualBox:/home/makey# 
+</span>
+
+
+Exit qemu, run again the script, and check on browser's side:
+
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Kub3/pics/final_gump.png" align = "middle"  width="680" height = "582"></img>
+
+Dayum, that's nice! 
+Now, I can check my 'unikerneled' web page just by accessing the container!
+
+
+Aren't Unikernelz AMAZIIIIING?!?! *bright_anime_eyes*
+
+
+
+That was all for today... do check the links below, for some knowledge.
+And remember, week-endz are for resting ... ;)
+
+===========================
+
+<i>To be read:</i>
+
+https://pkgsrc.org/pkgsrcCon/2016/rumprun.pdf
+
+https://github.com/rumpkernel/wiki/wiki/Tutorial:-Building-Rumprun-Unikernels
+
+https://blog.scottlowe.org/2013/09/04/introducing-linux-network-namespaces/
+
+
+https://manpages.debian.org/jessie/qemu-system-x86/qemu-system-x86_64.1.en.html
+
+https://www.slideshare.net/xen_com_mgr/unikernel-user-summit-2015-the-next-generation-cloud-unleashing-the-power-of-the-unikernel
+
+http://unikernel.org/blog/2015/unikernels-meet-docker
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
+
+
+
