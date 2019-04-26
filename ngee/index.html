@@ -1,0 +1,798 @@
+
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="20" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+        
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.tumblr.com/k3kZ">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>More about Rumprun Unikernelz</b></h3>--------------------------</p><p><i>...and nginx modules </i></p>
+
+</i>
+
+
+
+Hey there, kidz! Not many moons ago we had our first zine about Rumprun Unikernels.
+I know, they were so much phun, right? So, let's party harder!
+
+Let's see how you can run Nginx modules (written in C! Just how Gawd Igor intended
+them to be!). 
+
+
+
+[---------Prepare thy environment
+
+
+
+We will be using same kek1 container, built up from unikernix Docker image. 
+If you do not have it/removed it/first time around here,  no worries! 
+Check the first link, down below, on how to deploy unikernels on Docker containers
+and more!
+
+Just in case you are bored to check... here are the steps, folks!
+
+<span style="color:#FFCC00">
+root@tr0n:/home/buildz# more Dockerfile
+FROM ubuntu:16.04
+
+RUN apt-get update -y
+
+RUN apt-get install gcc -y 
+
+RUN apt-get update -y &&  apt-get install git -y 
+
+# install a bunch of necessary packages
+
+RUN  apt-get install libc6-armel-cross libc6-dev-armel-cross  \
+        binutils-arm-linux-gnueabi \
+        libncurses5-dev  \
+        qemu-user-static    \
+        inotify-tools  qemu  -y
+
+RUN apt-get install genisoimage -y
+
+# ...well, more packages 
+
+RUN apt-get install -y pkg-config \
+        && apt-get install -y openjdk-8-jdk \
+        && apt-get install -y cpio \
+        && apt-get install -y mercurial \
+        && apt-get install -y unzip \
+        && apt-get install -y zip \
+        && apt-get install zlib1g-dev -y
+ 
+RUN cd /opt/ && git clone http://repo.rumpkernel.org/rumprun &&\
+        cd /opt/rumprun &&\
+        git submodule update --init 
+    
+
+WORKDIR /opt/rumprun
+
+#build it 
+
+RUN ./build-rr.sh hw 
+
+WORKDIR /opt/rumprun
+ 
+
+
+</span>
+
+
+And build it as usual...
+
+<span style="color:#FFCC00">
+root@tr0n:/home/buildz# docker build -t unikernix .
+</span>
+
+ [ .... Wild break to sip more coffee .... ]
+
+...and once it's done, do a flip from excitement, and a check:
+
+<span style="color:#FFCC00">
+root@tr0n:/home/buildz# docker images | grep '.rnix*'
+unikernix                            latest             36280uc0832        2 days ago          2.23GB
+
+</span>
+
+Provide some access to devices filesystem 
+
+<span style="color:#FFCC00">
+
+root@tr0n:~# docker run --name kek1 --privileged=true \
+			--hostname=kek1 -v /dev:/dev -ti unikernix /bin/bash
+root@kek1:/opt/rumprun# 
+</span>
+
+My container's environment:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun# more /etc/environment 
+PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/opt/rumprun"
+export PATH=$PATH:rumprun/bin
+root@kek1:/opt/rumprun# 
+</span>
+
+
+
+Ahkay enough with the recap! ...  so I fired up my kek1 container:
+
+<span style="color:#FFCC00">
+root@tr0n:/ch00k33ty# #start and execute kek1 commands, just in case
+root@tr0n:/ch00k33ty# docker start kek1
+root@tr0n:/ch00k33ty# docker exec -ti kek1 /bin/bash
+root@kek1:/opt/rumprun# 
+</span>
+
+Last time we created folder rumpish under /opt/rumprun
+
+My actual path for this example starts here:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test# #hi!
+root@kek1:/opt/rumprun/rumprish/nginx_test#
+</span>
+
+Let's create a new folder under nginx_test:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test# mkdir abc123
+root@kek1:/opt/rumprun/rumprish/nginx_test#
+</span>
+
+This will be the folder where we will be installing all the necessary packages 
+for our nginx service.
+
+Luckily for us, the Rumprun Unikernels have amazingly good repositories, 
+so no big headaches here. 
+
+Keep in mind the dependencies of nginx. 
+Below a small example for what it takes to run nginx
+(output taken from a different machine) 
+
+
+<span style="color:#FFCC00">
+root@ch00k33ty:/home/test# ldd  nginx
+	linux-vdso.so.1 =>  (0x00007ffc9dbe2000)
+	libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007f2d4c5e4000)
+	libcrypt.so.1 => /lib/x86_64-linux-gnu/libcrypt.so.1 (0x00007f2d4c3ac000)
+	libpcre.so.3 => /lib/x86_64-linux-gnu/libpcre.so.3 (0x00007f2d4c13c000)
+	libcrypto.so.1.0.0 => /lib/x86_64-linux-gnu/libcrypto.so.1.0.0 (0x00007f2d4bcf7000)
+	libz.so.1 => /lib/x86_64-linux-gnu/libz.so.1 (0x00007f2d4badd000)
+	libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f2d4b713000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f2d4c801000)
+	libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f2d4b50f000)
+</span>
+
+
+So, just by analyzing that, you could tell you'd be needing pcre, libssl, some libcrypto.
+
+
+Now, let's go back to our kek1 container, 
+and download the nginx repository under abc123 folder, but first, install svn ( apt-get install subversion )
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123#
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/nginx 
+A    nginx
+[...]
+A    nginx/patches/0004-auto-lib-libxslt-conf-allow-to-override-ngx_feature_.patch
+Exported revision 420.
+</span>
+
+Time to grab pcre and libssl:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/libressl
+A    libressl
+A    libressl/Makefile
+A    libressl/README.md
+Exported revision 420.
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123#
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# 
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/pcre   
+A    pcre
+A    pcre/.gitignore
+A    pcre/Makefile
+A    pcre/README.md
+Exported revision 420.
+</span>
+
+Hey, almost there! 
+
+If you take a look at nginx' Makefile (under path /opt/rumprun/rumprish/nginx_test/abc123/nginx),
+you'll notice you need following files:
+
+1) line Makefile.inc in ./nginx/Makefile
+<span style="color:#a0a0a0">
+include ../Makefile.inc
+</span>
+Now, let's grab it:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/Makefile.inc
+A    Makefile.inc
+Export complete.
+</span>
+
+2) line scripts in ./nginx/Makefile 
+<span style="color:#a0a0a0">
+build/stamp_patch: build/configure patches/*
+	../scripts/apply-patches.sh build/ patches/*
+	touch $@
+</span>
+
+Grab'em:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/scripts
+A    scripts
+A    scripts/apply-patches.sh
+A    scripts/fetch.sh
+Exported revision 420.
+</span>
+
+3) ... and line Makefile.deps in ./nginx/Makefile:
+<span style="color:#a0a0a0">
+include ../Makefile.deps 
+</span>
+
+Grab it fast:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/Makefile.deps
+A    Makefile.deps
+Export complete.
+</span>
+
+..and grab some pkgs while you're still here:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/pkgs
+A    pkgs
+A    pkgs/.gitkeep
+Exported revision 420.
+</span>
+
+
+... Bu77  weight... there's moar! ... 
+
+
+Ah, yes... we need one more file, so that we can start compiling and building our unikernel:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# svn export https://github.com/rumpkernel/rumprun-packages.git/trunk/config.mk.dist   
+config.mk.dist
+Export complete.
+</span>
+
+
+This file helps you to configure the package builder. Copy the config.mk.dist to config.mk:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123# cp config.mk.dist config.mk 
+</span>
+and update RUMPRUN_TOOLCHAIN_TUPLE to RUMPRUN_TOOLCHAIN_TUPLE=x86_64-rumprun-netbsd.
+
+The copied file, after the above change, should look as below(change implemented in red)
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx/abc123# more config.mk
+#
+# rumprun-packages "configuration"
+#
+
+# Set to the name of the rumprun compiler toolchain you want to use for
+# building packages. (eg. x86_64-rumprun-netbsd, i486-rumprun-netbsdelf).
+ RUMPRUN_TOOLCHAIN_TUPLE=<font color="red">x86_64-rumprun-netbsd
+</font>
+
+# Select ssl package (another option is openssl)
+#RUMPRUN_SSL= libressl
+</span>
+
+
+... and a small recap of what my abc123 folder contains:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx/abc123# ls -ltr
+total 52
+-rw-r--r-- 1 root root   284 Aug 15  2016 config.mk.dist
+-rw-r--r-- 1 root root  1096 Aug 15  2016 Makefile.inc
+-rw-r--r-- 1 root root   168 Aug 15  2016 Makefile.deps
+drwxr-xr-x 2 root root  4096 Feb 23 20:32 scripts
+-rw-r--r-- 1 root root   305 Feb 23 20:37 config.mk
+-rwxr-xr-x 1 root root 15094 Feb 23 21:02 build-rr.sh
+drwxr-xr-x 4 root root  4096 Feb 23 21:03 libressl
+drwxr-xr-x 7 root root  4096 Feb 23 21:10 pkgs
+drwxr-xr-x 4 root root  4096 Feb 23 21:10 pcre
+drwxr-xr-x 7 root root  4096 Feb 24 00:35 nginx
+</span>
+
+It looks nice!
+
+
+------------] Exciting times for writing a Gumped nginx module
+
+
+Well, kidz, before building our nginx *sniffs* and  testing our module *sniffs*snifss*,
+one has to modify the nginx.conf. 
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx/abc123/nginx# more images/data/conf/nginx.conf 
+worker_processes 1;
+[..........]
+events {
+    worker_connections 128;
+}
+
+http {
+ 
+[..........]
+    server {
+        listen       80;
+        listen       [::]:80;
+        server_name  localhost;
+
+        location / {
+            root   /data/www;
+            index index.html;
+        }
+        <p style="color:red">
+        location /greetz {
+            oh_hi;
+        } </p>
+    }
+}
+</span>
+
+Marked with red what has been added in the existent file nginx.conf.
+
+So, everytime I access http://[some IP]:80/greetz, the module oh_hi is called,
+and will pop on the page whatever I programmed it to... 
+
+</br>
+
+<i> Eh... module example... </i>
+
+
+And now, kidz, create a new folder,
+where you will put the C code for module and its config file.
+
+
+My stuff looks like this - files are under /home/Hiya_Gump_Module:
+
+<span style="color:#FFCC00">
+root@kek1:/home/Hiya_Gump_Module# ls -ltr
+total 8
+-rw-r--r-- 1 root root  172 Feb 23 23:18 config
+-rw-r--r-- 1 root root 4009 Feb 23 23:42 ngx_http_hiya_gump_module.c
+root@kek1:/home/Hiya_Gump_Module# 
+</span>
+
+Let's check the config file:
+
+<span style="color:#FFCC00">
+root@kek1:/home/Hiya_Gump_Module# more config 
+ngx_addon_name=ngx_http_hiya_gump_module
+HTTP_MODULES="$HTTP_MODULES ngx_http_hiya_gump_module"
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_hiya_gump_module.c"
+root@kek1:/home/Hiya_Gump_Module# 
+</span>
+
+, where
+HTTP MODULES -  the list for HTTP modules
+NGX_ADDON_SRCS -  list of all addons, that are to be compiled 
+
+
+And our wild C code -- comments included; documentation to read is included as usual
+(and u'll weep while reading it). 
+Nginx is an entire new world by itself. 
+
+<span style="color:#FFCC00">
+root@kek1:/home/Hiya_Gump_Module# more ngx_http_hiya_gump_module.c 
+
+#include &#060;nginx.h>         //this is always needed
+#include &#060;ngx_config.h>    //this is always needed
+#include &#060;ngx_core.h>
+#include &#060;ngx_http.h>      //for http
+
+
+
+static char *ngx_http_hiya_gump_conf_handler( ngx_conf_t *cf, ngx_command_t *cmd, void *conf );
+
+
+//declare directive hiya_gump
+// when providing our location in nginx.conf ("greetz" in our case),
+// this module will run when finding "oh_hi;"
+
+
+static ngx_command_t  ngx_http_hiya_gump_commands[] = {
+    { ngx_string("oh_hi"),
+      NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS ,
+      ngx_http_hiya_gump_conf_handler,
+      0,
+      0,
+      NULL },
+      
+    ngx_null_command
+};
+
+//declare callback function of nginx events
+
+static ngx_http_module_t ngx_http_hiya_gump_module_ctx = {
+    NULL,                          /* preconfiguration */
+    NULL,                          /* postconfiguration */
+ 
+    NULL,                          /* create main configuration */
+    NULL,                          /* init main configuration */
+ 
+    NULL,                          /* create server configuration */
+    NULL,                          /* merge server configuration */
+ 
+    NULL,                          /* create location configuration */
+    NULL                           /* merge location configuration */
+};
+
+
+//module that binds context and commands
+
+ngx_module_t  ngx_http_hiya_gump_module = {
+    NGX_MODULE_V1,
+    &ngx_http_hiya_gump_module_ctx,       /* module context */
+    ngx_http_hiya_gump_commands,          /* module directives */
+    NGX_HTTP_MODULE,                        /* module type */
+    NULL,        							/* init master */
+    NULL,       							/* init module */
+    NULL,                                   /* init process */
+    NULL,                                   /* init thread */
+    NULL,                                   /* exit thread */
+    NULL,                                   /* exit process */
+    NULL,                                   /* exit master */
+    NGX_MODULE_V1_PADDING
+};
+
+//main handler function of the module
+
+ngx_int_t ngx_http_hiya_gump_handler(ngx_http_request_t *r)
+{
+
+
+    ngx_buf_t   *b;
+    ngx_chain_t out;
+    ngx_int_t   rc;
+
+
+static u_char webish[] = "&#060;html>&#060;head>&#060;title>FeelinGumpy&#060;/title> &#060;style>body{background-color:#F444FF}&#92;
+&#060;/style>&#060;/head>&#92;
+&#060;body>&#060;center>&#060;h2>Hiya, Gump!&#060;/h2>&#060;br> &#92;
+&#060;img src=\"https://66.media.tumblr.com/66237e7e905eb9cd2555ab422ccf817c/tumblr_oo3gndn3ly1uaiqeco2_500.gif\">&#92;
+&#060;/center>&#060;/body>&#060;/html>";
+
+
+
+    //set the 'Content-Type' header
+
+     r->headers_out.content_type.len   = ngx_strlen("text/html");
+     r->headers_out.content_type.data  = (u_char *)"text/html";
+ 
+    //set the status 
+
+    r->headers_out.status = NGX_HTTP_OK;
+    r->headers_out.content_length_n = sizeof( webish ) - 1 ;
+
+     // allocate buffer from nginx pool for the response body
+
+    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+
+    if(b == NULL)
+    {
+        ngx_log_error( NGX_LOG_ERR, r->connection->log, 0, "Failed to allocate buffer." );
+        return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
+
+    //attach buffer to buffer chain 
+
+    out.buf 	= b;
+    out.next 	= NULL;
+
+    // adjust pointers of the buffer
+        
+    b->pos 	= webish ;
+    b->last = webish + sizeof( webish ) - 1 ;
+
+    b->memory 	= 1; // this buffer is now in memory
+    b->last_buf = 1; //the last buffer in the buffer chain
+
+    rc = ngx_http_send_header(r);
+
+    if(rc != NGX_OK)
+    {
+        return rc;
+    }
+   
+    //send your response's buffer chain
+
+    return ngx_http_output_filter(r, &out);
+}
+
+//directive handler
+
+static char *ngx_http_hiya_gump_conf_handler( ngx_conf_t *cf,  ngx_command_t *cmd, void *conf )
+{
+
+    ngx_http_core_loc_conf_t    *clcf;
+
+    clcf = ngx_http_conf_get_module_loc_conf( cf, ngx_http_core_module ) ;
+
+    //specify request handler
+
+    clcf->handler = ngx_http_hiya_gump_handler ;  
+
+    return NGX_CONF_OK ;    
+}
+
+root@kek1:/home/Hiya_Gump_Module#   
+</span>
+
+
+Let's go back to our nginx folder:
+
+<span style="color:#FFCC00">
+root@kek1:/home/Hiya_Gump_Module# cd /opt/rumprun/rumprish/nginx_test/abc123/nginx
+root@kek1:/opt/rumprun/rumprish/nginx/abc123/nginx# ls Makefile
+Makefile
+root@kek1:/opt/rumprun/rumprish/nginx/abc123/nginx#
+</span>
+And let's edit the Makefile, so that we can run our nginx module,
+by using --add-module parameter. Provide the entire path of folder,
+where the config and code are located:
+
+<span style="color:#FFCC00">
+
+ NGINX_CONF_OPTS += \
+	--crossbuild=NetBSD \
+	[...............]
+	--with-ipv6 \   
+       <b> --add-module=/home/Hiya_Gump_Module \</b>
+	--with-pcre
+
+</span>
+
+
+
+--------------------] "Are we there yet?!"
+
+
+Just in case:
+under /opt/rumprun, run once again the export for tools:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun# export PATH=$&#123;PATH&#125;:$(pwd)/rumprun/bin
+</span>
+
+
+
+We are now ready to build the Nginx unikernel (along with the module) - simply run make:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# make
+
+[......if no errors you should see the module....]
+
+objs/src/http/modules/ngx_http_upstream_keepalive_module.o \
+<b>objs/addon/Hiya_Gump_Module/ngx_http_hiya_gump_module.o \</b>
+objs/ngx_modules.o \
+
+[................................................]
+
+cp build/objs/nginx bin/nginx
+genisoimage -l -r -o images/data.iso images/data
+Result Size: 200 x 446
+
+Total translation table size: 0
+Total rockridge attributes bytes: 1254
+Total directory bytes: 4560
+Path table size(bytes): 34
+Max brk space used 0
+189 extents written (0 MB)
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# 
+</span>
+
+You can also check the new addon on container's side:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ls build/objs/addon/                 
+Hiya_Gump_Module
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ls build/objs/addon/Hiya_Gump_Module/
+ngx_http_hiya_gump_module.o
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# 
+</span>
+
+... bake the image:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# rumprun-bake hw_virtio ./nginx.bin bin/nginx
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx#
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ls nginx.bin 
+nginx.bin
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx
+</span>
+
+
+Create a tap device and give it a network:
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ip tuntap add tap0 mode tap
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ip addr add 10.0.120.100/24 dev tap0
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ip link set dev tap0 up
+</span>
+ 
+ Check, just in case...
+ <span style="color:#FFCC00">
+ root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ip a | grep tap0
+7: tap0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP group default qlen 1000
+    inet 10.0.120.100/24 scope global tap0
+</span>
+
+... and run it:
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# rumprun qemu -i -g '-curses' -M 128      \
+-I if,vioif,'-net tap,script=no,ifname=tap0'    \
+-W if,inet,static,10.0.120.101/24       \
+-b images/data.iso,/data   -- ./nginx.bin -c /data/conf/nginx.conf
+</span>
+
+Same purple on black output should appear (just like in the 1st zine)
+
+Now, open a terminal, log in to the kek1, and check with a curl what you get at  http://10.0.120.101:80
+
+<span style="color:#FFCC00">
+root@tr0n:/ch00k33ty# docker exec -ti kek1 /bin/bash
+root@kek1:/opt/rumprun/#
+root@kek1:/opt/rumprun/# curl -v http://10.0.120.101
+* Rebuilt URL to: http://10.0.120.101/
+*   Trying 10.0.120.101...
+* Connected to 10.0.120.101 (10.0.120.101) port 80 (#0)
+> GET / HTTP/1.1
+> Host: 10.0.120.101
+> User-Agent: curl/7.47.0
+> Accept: */*
+> 
+&#060; HTTP/1.1 200 OK
+&#060; Server: nginx/1.8.0
+&#060; Date: Sun, 24 Feb 2019 20:03:00 GMT
+&#060; Content-Type: text/html
+&#060; Content-Length: 212
+&#060; Last-Modified: Sun, 01 Jan 2017 19:02:22 GMT
+&#060; Connection: keep-alive
+&#060; ETag: "5869523e-d4"
+&#060; Accept-Ranges: bytes
+&#060; 
+&#060;html>
+&#060;body style="font-size: 14pt;">
+   &#060;img src="logo150.png"/>
+    Served to you by &#060;a href="http://nginx.org/">nginx&#060;/a>, running on a
+    &#060;a href="http://rumpkernel.org">rump kernel&#060;/a>...
+&#060;/body>
+&#060;/html>
+* Connection #0 to host 10.0.120.101 left intact
+</span>
+
+Kewl! So, we can see the index.html works on port 80!
+
+Check if our module works on http://10.0.120.101:80/greetz :
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/# curl -v http://10.0.120.101/greetz
+*   Trying 10.0.120.101...
+* Connected to 10.0.120.101 (10.0.120.101) port 80 (#0)
+> GET /greetz HTTP/1.1
+> Host: 10.0.120.101
+> User-Agent: curl/7.47.0
+> Accept: */*
+> 
+&#060; HTTP/1.1 200 OK
+&#060; Server: nginx/1.8.0
+&#060; Date: Sun, 24 Feb 2019 20:03:02 GMT
+&#060; Content-Type: text/html
+&#060; Content-Length: 261
+&#060; Connection: keep-alive
+&#060; 
+* Connection #0 to host 10.0.120.101 left intact
+&#060;html>&#060;head>&#060;title>FeelinGumpy&#060;/title> &#060;style>body{background-color:#F444FF} &#060;/style>&#060;/head>&#060;body>
+&#060;center>&#060;h2>Hiya, Gump!&#060;/h2>&#060;br> &#060;img src="https://66.media.tumblr.com/66237e7e905eb9cd2555ab422ccf817c/tumblr_oo3gndn3ly1uaiqeco2_500.gif">
+&#060;/center>&#060;/body>&#060;/html>
+</span>
+
+
+Noice! 
+
+For a fast check, let's use netstat-traditional once again, like we did in first unikernel zine:
+
+[From terminal one]
+forward trafic from port 80 to 172.17.0.2 (container's IP) on port 8080
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumpish# nc -l -p 8080 -c 'nc 10.0.120.101 80'
+</span>
+[From terminal two - from vm ]
+forward traffic from port 8080 container to localhost vm on port 8666
+<span style="color:#FFCC00">
+root@tr0n:/ch00k33ty# nc -l -p 8666 -c 'nc 172.17.0.2 8080'
+</span>
+
+Open a browser, and check link at http://127.0.0.1:8666/greetz
+
+Some wild gif should appear! 
+
+<img src="https://raw.githubusercontent.com/jnc0x24dd099bb870/Network/master/Kub3/pics/choockity.png" align = "middle"  width="780" height = "482"></img>
+
+
+Try same thing for http://127.0.0.1:8666
+
+
+
+<b>Extra stuff:</b>  feel free to check src code under build/src/
+
+<span style="color:#FFCC00">
+root@kek1:/opt/rumprun/rumprish/nginx_test/abc123/nginx# ls build/src/
+core  event  http  mail  misc  os
+</span>
+
+
+For more horrors, do not forget to check the 1st zine about unikernels
+(in case you want to skip netstat-traditional...)
+
+
+Oh, this was a long zine... And it was quite superficially written. Heh!
+I hope you were able to pay attention all this time.
+If you did, congrats! ... And thank you! 
+
+
+Buh-bye... for now! ^^
+
+
+===========================
+<i>To be read:</i>
+
+[First zine about Rumprun unikernelz]
+https://jnc0x24dd099bb870.tumblr.com/NetworkZ/unikZ
+
+[Nginx Guts - http-modules /really kewl site]
+http://www.nginxguts.com/2011/02/http-modules/
+
+[Nginx - hello world module /oldies, but goldies!]
+https://nutrun.com/weblog/2009/08/15/hello-world-nginx-module.html
+
+[Rumprun-package]
+https://github.com/rumpkernel/rumprun-packages
+
+[Rumprun - Serve a static website as a Unikernel]
+https://github.com/rumpkernel/wiki/wiki/Tutorial%3A-Serve-a-static-website-as-a-Unikernel
+
+[Nginx - documentation]
+http://nginx.org/en/docs/
+
+
+
+
+-------EOF---------
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
+
