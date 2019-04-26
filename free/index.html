@@ -1,0 +1,882 @@
+<html>
+<body bgcolor="#000000" text="#00BFFF" link="#00BFFF" vlink="#00BFFF"> 
+<div align="center">
+  <table width="100%" border="0" cellpadding="20" cellspacing="0">
+    <tr>
+     <td width="100%" align="left" valign="middle">
+      <table border="0" cellpadding="0" cellspacing="0" class="cellheader2">
+      <tr>
+       <td width="100%" align="left" valign="middle">
+        
+       </td>
+       <td width="8%" align="right" valign="middle">
+        <a href="https://jnc0x24dd099bb870.tumblr.com/k3kZ">Back</a>
+       </td>
+      </tr>
+     </td>
+    </tr>
+  </table>
+  <br>
+  <table width="100%" border="0" cellpadding="0" cellspacing="0" class="cellinside">
+   <tr>
+    <td>
+
+<pre>
+<p>--------------------------<b><h3>FreeBSD assembly</b></h3>--------------------------</p><p><i>...check it out on 64bit!  </i></p>
+
+</i>
+
+
+
+Hey, there kidz! 
+Small zine on how to write assembly code "backwards" ... that is,
+you disassemble the C code, and from there, you try to solve the puzzle.
+
+Reasonz behind this: I have fully "migrated" to *BSD systems. *w00p-w00p*  
+...because reasonz! l3l!
+
+Although there is still some Linux left for future zines, my mind and 'raison d'être'
+will stay focused on FreeBSD and NetBSD, mostly.
+
+Obviously, this zine's code/command lines/tools is compatible with
+FreeBSD system ... it can be adapted to Linux, tho! 
+
+
+
+-------------------] Prepare thy Environment
+
+
+
+Guess you will need a bit of "research" on youtube/web  
+on how to install FreeBSD on a virtual machine/laptop.
+
+
+For now, no FreeBSD jails. ...for now! *evil_grin*
+
+
+Anywayz, my 'wrenchy' host has the following specs:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # uname -s -m -ri -n
+FreeBSD wrenchy 11.2-STABLE amd64 GENERIC
+</span>
+
+Guess that'll do!
+
+
+-------------------] Gump all the OS-es!
+
+
+
+Let's learn how to salute  Gump in FreeBSD.
+
+<span style="color:#FFCC00">
+root@wrenchy:~ #  man 2 write
+...
+    #include &#60;unistd.h>
+
+     ssize_t
+     write(int fd, const void *buf, size_t nbytes);
+
+...
+</span>
+
+ fd (file descriptor - STDOUT (1) ) to write to pointer to a string,
+and the size of that string.
+
+Now, let's check the value for the fd - file descriptor - STDOUT:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # more /usr/include/unistd.h  | grep -i _fileno
+#define STDIN_FILENO    0       /* standard input file descriptor */
+#define STDOUT_FILENO   1       /* standard output file descriptor */
+#define STDERR_FILENO   2       /* standard error file descriptor */
+root@wrenchy:/home/testish # 
+</span>
+
+Hmm.. and what else do we need? 
+
+Oh, syscalls!
+
+...in order to write:
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # more /usr/src/sys/kern/syscalls.master | grep 'AUE_WRITE\>' | awk '{print $1}'
+4
+root@wrenchy:/home/testish # 
+</span>
+
+...and exit:
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish #  more /usr/src/sys/kern/syscalls.master | grep 'AUE_EXIT\>' | awk '{print $1}'
+1
+root@wrenchy:/home/testish #
+</span>
+
+...now, it's time to say hello:
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # 
+root@wrenchy:/home/testish # printf 'main(){write(1, "Hiya,\ Gump!\\n",12 ) ; }\n' | gcc -xc - -o 33
+root@wrenchy:/home/testish # 
+root@wrenchy:/home/testish # ./33 
+Hiya, Gump!
+root@wrenchy:/home/testish #
+</span>
+
+
+-------------------] Find your way back home!
+
+
+Now that we have a small C code, it's time to disassemble it. 
+Although there are known tools from Linux world (gdb, objdump), 
+one must know that strace is replaced by truss around these parts.
+
+
+I trust you completely when you say you have read all the tutorials I have provided
+about gdb,  and that you recall a bit the notions about x64_86 assembly. 
+
+
+Let's fire up a  gdb session with a small script:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # vi hehe.gdb
+
+set width 0
+set height 0
+set verbose off
+set logging on
+
+break main
+  run
+  disas
+  i r rax rsi rdx rdi
+
+</span>
+
+Let's run it to obtain the status of the rax, rsi, rdx, rdi registers:
+
+<span style="color:#FFCC00">
+
+root@wrenchy:/home/testish # gdb -q --command=hehe.gdb --args ./33
+(no debugging symbols found)...Breakpoint 1 at 0x4007c9
+(no debugging symbols found)...(no debugging symbols found)...
+Breakpoint 1, 0x00000000004007c9 in main ()
+Dump of assembler code for function main:
+0x00000000004007c5 &#60;main+0>:        push   %rbp
+0x00000000004007c6 &#60;main+1>:        mov    %rsp,%rbp
+0x00000000004007c9 &#60;main+4>:        mov    $0xc,%edx
+0x00000000004007ce &#60;main+9>:        mov    $0x400843,%esi
+0x00000000004007d3 &#60;main+14>:       mov    $0x1,%edi
+0x00000000004007d8 &#60;main+19>:       mov    $0x0,%eax
+0x00000000004007dd &#60;main+24>:       callq  0x400450 &#60;write@plt>
+0x00000000004007e2 &#60;main+29>:       mov    $0x0,%eax
+0x00000000004007e7 &#60;main+34>:       pop    %rbp
+0x00000000004007e8 &#60;main+35>:       retq   
+0x00000000004007e9 &#60;main+36>:       nopl   0x0(%rax)
+End of assembler dump.
+rax            0x600970 6293872
+rsi            0x7fffffffeb88   140737488350088
+rdx            0x7fffffffeb98   140737488350104
+rdi            0x1      1
+(gdb) # still opened
+(gdb) 
+</span>
+
+The session is left open, so we can continue our inspection.
+
+Check again how registers rax, rsi rdx and rdi look like:
+(you'll keep running this...trust me!)
+
+<span style="color:#FFCC00">
+(gdb) i r rax rsi rdx rdi
+rax            0x600970 6293872
+rsi            0x7fffffffeb88   140737488350088
+rdx            0x7fffffffeb98   140737488350104
+rdi            0x1      1
+(gdb)
+</span>
+
+
+
+If you take a closer look at the dissambled part of the main, 
+you will notice the following line:
+
+
+<span style="color:#FFCC00">
+0x00000000004007dd &#60;main+24>:       callq  0x400450 &#60;write@plt>
+</span>
+
+
+That looks nasty...eh!
+
+[[ start the extra details here ]]
+
+So what is that write@plt?
+That plt (Procedure Linkage Table) is just an indirection 
+- our code does not call an external function directly, but inderectly with plt's help. 
+
+
+So, let's find the dependencies:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # ldd 33
+33:
+        libc.so.7 => /lib/libc.so.7 (0x800822000)
+</span>
+
+
+Now, look for the entry that we are interested about (__sys_write)
+
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # readelf -a /lib/libc.so.7 | grep "__sys_write\>"
+00000039a618 07dc00000001 R_X86_64_64         000000000015a500 __sys_write + 0
+  2012: 000000000015a500    17 FUNC    GLOBAL DEFAULT   11 __sys_write@@FBSDprivate_1.0 (8)
+root@wrenchy:/home/testish # 
+</span>
+
+Good, starts at address 0x015a500
+
+... and dissasemble it:
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # objdump -d /lib/libc.so.7 --start-address=0x15a500
+
+/lib/libc.so.7:     file format elf64-x86-64-freebsd
+
+Disassembly of section .init:
+Disassembly of section .plt:
+Disassembly of section .text:
+
+000000000015a500 &#60;__sys_write>:
+  15a500:       b8 04 00 00 00          mov    $0x4,%eax
+  15a505:       49 89 ca                mov    %rcx,%r10
+  15a508:       0f 05                   syscall 
+  15a50a:       0f 82 c4 00 00 00       jb     15a5d4 &#60;__sys_ioctl+0x14>
+[...]
+</span>
+
+So, this is how our write() is implemented ... 
+
+Noice! Now, time go back to our gdb session and check for more details:
+
+[[ end the extra details here ]]
+
+
+Check/Break at write@plt address:
+
+<span style="color:#FFCC00">
+(gdb) break *main+24
+Breakpoint 2 at 0x4007dd
+(gdb) si
+0x00000000004007ce in main ()
+</span>
+
+Let's check our registers now:
+<span style="color:#FFCC00">
+(gdb) i r rax rsi rdx rdi
+rax            0x600970 6293872
+rsi            0x7fffffffeb88   140737488350088
+rdx            0xc      12
+rdi            0x1      1
+</span>
+
+
+Continue and disassemble:
+
+
+<span style="color:#FFCC00">
+(gdb) c
+Continuing.
+
+Breakpoint 2, 0x0000000000400450 in write@plt ()
+(gdb) disas
+Dump of assembler code for function write@plt:
+0x0000000000400450 &#60;write@plt+0>:   jmpq   *0x20069a(%rip)        # 0x600af0 &#60;_GLOBAL_OFFSET_TABLE_+32>
+0x0000000000400456 &#60;write@plt+6>:   pushq  $0x1
+0x000000000040045b &#60;write@plt+11>:  jmpq   0x400430 &#60;.plt>
+End of assembler dump.
+</span>
+
+...and let's check again our registers:
+
+<span style="color:#FFCC00">
+(gdb) i r rax rsi rdx rdi
+rax            0x0      0
+rsi            0x400843 4196419
+rdx            0xc      12
+rdi            0x1      1
+</span>
+
+Hey, we are not done, yet:
+
+<span style="color:#FFCC00">
+(gdb) break *0x400430
+Breakpoint 3 at 0x400430
+(gdb) c
+Continuing.
+
+Breakpoint 3, 0x0000000000400430 in .plt ()
+(gdb) disas
+Dump of assembler code for function .plt:
+0x0000000000400430 &#60;.plt+0>:        pushq  0x2006a2(%rip)        # 0x600ad8 &#60;_GLOBAL_OFFSET_TABLE_+8>
+0x0000000000400436 &#60;.plt+6>:        jmpq   *0x2006a4(%rip)        # 0x600ae0 &#60;_GLOBAL_OFFSET_TABLE_+16>
+0x000000000040043c &#60;.plt+12>:       nopl   0x0(%rax)
+End of assembler dump.
+(gdb) si
+(gdb) # registers again
+(gdb) i r rax rsi rdx rdi
+rax            0x0      0
+rsi            0x400843 4196419
+rdx            0xc      12
+rdi            0x1      1
+</span>
+
+...and let's continue:
+<span style="color:#FFCC00">
+(gdb) c
+Continuing.
+<b>Hiya, Gump!</b>
+
+Breakpoint 3, 0x0000000000400430 in .plt ()
+</span>
+
+Yiss!
+
+Now, check again registers:
+<span style="color:#FFCC00">
+(gdb) i r rax rsi rdx rdi
+rax            0x0      0
+rsi            0x400843 4196419
+rdx            0xc      12
+rdi            0x0      0
+(gdb) 
+</span>
+
+
+[[From retq address ]] 
+
+<span style="color:#FFCC00">
+(gdb) break *main+35
+Breakpoint 2 at 0x4007e8
+(gdb) si  
+0x00000000004007ce in main ()
+
+(gdb) i r rax rsi rdx rdi
+rax            0x600970 6293872
+rsi            0x7fffffffeb88   140737488350088
+rdx            0xc      12
+rdi            0x1      1
+
+(gdb) c
+Continuing.
+Hiya, Gump!
+
+Breakpoint 2, 0x00000000004007e8 in main ()
+(gdb)
+
+(gdb) i r rax rsi rdx rdi
+rax            0x0      0
+rsi            0x400843 4196419
+rdx            0xc      12
+rdi            0x1      1
+
+</span>
+
+Good... let's see what rsi register contains:
+
+<span style="color:#FFCC00">
+(gdb) x/12cb 0x400843
+0x400843 &#60;.rodata+1>:       72 'H'  105 'i' 121 'y' 97 'a'  44 ','  32 ' '  71 'G'  117 'u'
+0x40084b &#60;.rodata+9>:       109 'm' 112 'p' 33 '!'  10 '\n'
+(gdb) 
+</span>
+
+
+
+So, my little knowledge junkies: 
+
+- eax is where write syscall (4) is put
+- rdx is where the length (12) will be put
+- rdi keeps the file descriptor (STDOUT (1))
+- rsi keeps the string ("Hiya, Gump!")
+
+
+
+------------] Remember, remember... the template, the assembler!
+
+
+
+In case you have forgotten the asm template:
+
+
+<span style="color:#a0a0a0">
+.section.data
+
+   [ you put initialized data here]
+   
+.section .bss
+
+   [ you put uninitialized data here]
+   
+.section .text
+
+.globl _start
+_start:
+    [you put yo code here]
+
+.section .rodata
+</span>
+
+
+What do we have so far:
+
+<span style="color:#FFCC00">
+.section .data
+.equ SYS_EXIT, 1
+.equ SYS_WRITE, 4 
+.equ STDOUT, 1
+.equ LENGTH, 12
+
+</span>
+
+...and those  registers (oh, my the pwn...):
+<span style="color:#FFCC00">
+
+
+    movl $SYS_WRITE, %eax           #put sys_write in eax
+    movq $STDOUT, %rdi              #put fd in rdi
+
+    movq $heyGump, %rsi	            #write string in rsi 
+    movq $LENGTH, %rdx              #put length in rdx
+    syscall
+
+    pushq $SYS_EXIT; popq %rax	    #exit
+    movq %rcx, %r10 
+    syscall
+    
+    
+</span>
+
+
+Time to see if there is something in .rodata:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # objdump -rs ./33 | grep -B0 -A1 .rodata
+Contents of section .rodata:
+ 400842 00486979 612c2047 756d7021 0a00      .Hiya, Gump!..  
+root@wrenchy:/home/testish # 
+</span>
+
+Aand let's check the  .bss:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # gdb -q --command=hehe.gdb --args ./33
+Breakpoint 1, 0x00000000004007c9 in main ()
+Dump of assembler code for function main:
+0x00000000004007c5 &#60;main+0>:    push   %rbp
+[....]
+(gdb) #check some info about the files
+(gdb)  info files
+Symbols from "/usr/home/testish/33".
+Unix child process:
+        Using the running image of child process 3905.
+        While running this, GDB does not access memory from...
+Local exec file:
+        `/usr/home/testish/33', file type elf64-x86-64-freebsd.
+        Entry point: 0x400480
+        0x0000000000400200 - 0x0000000000400215 is .interp
+        0x0000000000400218 - 0x0000000000400248 is .note.tag
+        0x0000000000400248 - 0x000000000040027c is .hash
+[....]
+        0x0000000000600b08 - 0x0000000000600b18 is .data
+        0x0000000000600b18 - 0x0000000000600b30 is .bss
+        0x0000000800822190 - 0x00000008008272c0 is .hash in /lib/libc.so.7
+[...]
+(gdb) disas 0x0000000000600b18,0x0000000000600b30
+No function contains specified address.
+
+(gdb) q  
+The program is running.  Exit anyway? (y or n) y 
+root@wrenchy:/home/testish # objdump -s -j .bss ./33
+
+./33:     file format elf64-x86-64-freebsd
+
+root@wrenchy:/home/testish #
+</span>
+
+
+Good, no bss. 
+
+
+Feel free to use objdump for more details:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # objdump -d ./33 | grep -A10 _start
+0000000000400480 <_start>:
+  400480:	55                   	push   %rbp
+  400481:	48 89 e5             	mov    %rsp,%rbp
+  400484:	41 57                	push   %r15
+ 
+  [......]
+  
+ </span>
+  
+
+... I guess...we're done!
+
+
+------------] Ship it!
+
+
+Behold, almighty Gump on FreeBSD:
+
+
+root@wrenchy:/home/testish # more gumpbsd.s 
+<span style="color:#FFCC00">
+.section .data
+.equ SYS_EXIT, 1
+.equ SYS_WRITE, 4
+.equ KERNEL, 0x80
+.equ STDOUT, 1
+.equ LENGTH, 12
+
+
+.section .rodata
+heyGump:
+    .ascii "Hiya, Gump!\n"
+
+.section .text
+.globl _start
+_start:
+    nop
+    movl $SYS_WRITE, %eax
+    movq $STDOUT, %rdi
+
+    movq $heyGump, %rsi
+    movq $LENGTH, %rdx
+    syscall
+
+    pushq $SYS_EXIT; popq %rax
+    movq %rcx, %r10
+
+    syscall
+</span>
+
+Assemble, link, and run:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # as gumpbsd.s -o gumpbsd.o
+root@wrenchy:/home/testish # ld gumpbsd.o -o gumpbsd
+root@wrenchy:/home/testish # ./gumpbsd 
+Hiya, Gump!
+root@wrenchy:/home/testish # 
+</span>
+
+... and check the syscalls:
+
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # truss ./gumpbsd
+Hiya, Gump!
+write(1,"Hiya, Gump!\n",12)                      = 12 (0xc)
+exit(0x1)                                       
+process exit, rval = 1
+</span>
+
+
+Close enough!
+
+
+------------------] Why you're still reading this?!
+
+
+Let's see how it works:
+
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # objdump -d ./gumpbsd
+
+./gumpbsd:     file format elf64-x86-64-freebsd
+
+Disassembly of section .text:
+
+0000000000400078 &#60;_start>:
+  400078:       90                      nop    
+  400079:       b8 04 00 00 00          mov    $0x4,%eax
+  40007e:       48 c7 c7 01 00 00 00    mov    $0x1,%rdi
+  400085:       48 c7 c6 9d 00 40 00    mov    $0x40009d,%rsi
+  40008c:       48 c7 c2 0c 00 00 00    mov    $0xc,%rdx
+  400093:       0f 05                   syscall 
+  400095:       6a 01                   pushq  $0x1
+  400097:       58                      pop    %rax
+  400098:       49 89 ca                mov    %rcx,%r10
+  40009b:       0f 05                   syscall 
+</span>
+
+
+Ahkay, a few nulls here and there:
+
+
+<span style="color:#FFCC00">
+.section .data
+.equ SYS_EXIT, 1
+.equ SYS_WRITE, 4
+.equ KERNEL, 0x80
+.equ STDOUT, 1
+.equ LENGTH, 12
+
+
+.section .rodata
+heyGump:
+    .ascii "Hiya, Gump!\n"
+
+.section .text
+.globl _start
+_start:
+    nop
+   pushq $SYS_WRITE; popq %rax
+   xorq %r9, %r9
+   movl %eax, %r9d
+
+   pushq $STDOUT; popq %rdi
+
+    pushq $heyGump; popq %rsi
+    pushq $LENGTH; popq %rdx
+    syscall
+
+    pushq $SYS_EXIT; popq %rax
+    #movq %rcx, %r10
+    pushq %rcx; popq %r10
+
+    syscall
+</span>
+
+Let's see now:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # as gumpbsd.s -o gumpbsd.o
+root@wrenchy:/home/testish # ld gumpbsd.o -o gumpbsd
+root@wrenchy:/home/testish # ./gumpbsd
+Hiya, Gump!
+
+root@wrenchy:/home/testish # objdump -D ./gumpbsd
+
+./gumpbsd:     file format elf64-x86-64-freebsd
+
+Disassembly of section .text:
+
+0000000000400078 &#60;_start>:
+  400078:       90                      nop    
+  400079:       6a 04                   pushq  $0x4
+  40007b:       58                      pop    %rax
+  40007c:       4d 31 c9                xor    %r9,%r9
+  40007f:       41 89 c1                mov    %eax,%r9d
+  400082:       6a 01                   pushq  $0x1
+  400084:       5f                      pop    %rdi
+  400085:       68 98 00 40 00          pushq  $0x400098
+  40008a:       5e                      pop    %rsi
+  40008b:       6a 0c                   pushq  $0xc
+  40008d:       5a                      pop    %rdx
+  40008e:       0f 05                   syscall 
+  400090:       6a 01                   pushq  $0x1
+  400092:       58                      pop    %rax
+  400093:       51                      push   %rcx
+  400094:       41 5a                   pop    %r10
+  400096:       0f 05                   syscall 
+Disassembly of section .rodata:
+
+0000000000400098 &#60;heyGump>:
+  400098:       48 69 79 61 2c 20 47    imul   $0x7547202c,0x61(%rcx),%rdi
+  40009f:       75 
+  4000a0:       6d                      insl   (%dx),%es:(%rdi)
+  4000a1:       70 21                   jo     4000c4 &#60;heyGump+0x2c>
+  4000a3:       0a                      .byte 0xa
+
+</span>
+
+Almost there... need to fix gump's name!
+
+
+<span style="color:#FFCC00">
+.section .data
+.equ SYS_EXIT, 1
+.equ SYS_WRITE, 4
+.equ KERNEL, 0x80
+.equ STDOUT, 1
+.equ LENGTH, 12
+
+
+.section .rodata
+heyGump:
+    .ascii "Hiya, Gump!\n"
+
+.section .text
+.globl _start
+_start:
+    nop
+   pushq $SYS_WRITE; popq %rax
+   xorq %r9, %r9
+   movl %eax, %r9d
+
+   pushq $STDOUT; popq %rdi
+
+# pushq $heyGump; popq %rsi
+
+    movq $0xAAAAAa021706d75 , %rcx
+    pushq %rcx
+    movq $0x47202c617969480a, %rcx
+    pushq %rcx
+
+    xorq %rbx, %rbx
+    xorq %rcx, %rcx
+    movb $14, %cl
+    movw %bx, (%rsp, %rcx, 1)
+    movq %rsp, %rsi
+
+pushq $LENGTH; popq %rdx
+    syscall
+
+    pushq $SYS_EXIT; popq %rax
+    #movq %rcx, %r10
+    pushq %rcx; popq %r10
+
+    syscall
+</span>
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish #as gumpbsd.s -o gumpbsd.o
+root@wrenchy:/home/testish #ld gumpbsd.o -o gumpbsd
+root@wrenchy:/home/testish #./gumpbsd
+
+Hiya, Gump!
+</span>
+
+Ah, so much better:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # objdump -d gumpbsd
+
+gumpbsd:     file format elf64-x86-64-freebsd
+
+Disassembly of section .text:
+
+0000000000400078 &#60;_start>:
+  400078:       90                      nop    
+  400079:       6a 04                   pushq  $0x4
+  40007b:       58                      pop    %rax
+  40007c:       4d 31 c9                xor    %r9,%r9
+  40007f:       41 89 c1                mov    %eax,%r9d
+  400082:       6a 01                   pushq  $0x1
+  400084:       5f                      pop    %rdi
+  400085:       48 b9 75 6d 70 21 a0    mov    $0xaaaaaa021706d75,%rcx
+  40008c:       aa aa 0a 
+  40008f:       51                      push   %rcx
+  400090:       48 b9 0a 48 69 79 61    mov    $0x47202c617969480a,%rcx
+  400097:       2c 20 47 
+  40009a:       51                      push   %rcx
+  40009b:       48 31 db                xor    %rbx,%rbx
+  40009e:       48 31 c9                xor    %rcx,%rcx
+  4000a1:       b1 0e                   mov    $0xe,%cl
+  4000a3:       66 89 1c 0c             mov    %bx,(%rsp,%rcx,1)
+  4000a7:       48 89 e6                mov    %rsp,%rsi
+  4000aa:       6a 0c                   pushq  $0xc
+  4000ac:       5a                      pop    %rdx
+  4000ad:       0f 05                   syscall 
+  4000af:       6a 01                   pushq  $0x1
+  4000b1:       58                      pop    %rax
+  4000b2:       51                      push   %rcx
+  4000b3:       41 5a                   pop    %r10
+  4000b5:       0f 05                   syscall 
+root@wrenchy:/home/testish # 
+</span>
+
+Extract opcodes:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # objdump -d gumpbsd | grep -v 'file' | cut -d: -f2 |
+cut -f1-7 -d' ' | tr -s ' ' |  tr '\t' ' ' | sed 's/ $//g' | sed 's/ /\\x/g' | 
+tr -d '\n' | sed 's/^/"/' | sed 's/$/"/g'
+"\x90\x6a\x04\x58\x4d\x31\xc9\x41\x89\xc1\x6a\x01\x5f\x48\xb9\x75\x6d\x70\x21\xa0\xaa
+\xaa\x0a\x51\x48\xb9\x0a\x48\x69\x79\x61\x2c\x20\x47\x51\x48\x31\xdb\x48\x31\xc9\xb1
+\x0e\x66\x89\x1c\x0c\x48\x89\xe6\x6a\x0c\x5a\x0f\x05\x6a\x01\x58\x51\x41\x5a\x0f\x05"
+</span>
+
+And there's your sh3llcode:
+
+<span style="color:#FFCC00">
+more ship_it.c
+#include&#60;sys/mman.h>
+#include&#60;sys/stat.h>
+#include&#60;fcntl.h>
+#include&#60;stdio.h>
+#include&#60;stdlib.h>
+#include&#60;unistd.h>
+
+#define handle_error(msg) \
+    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+
+int (*sc)();
+
+char shellcode[] =
+"\x90\x6a\x04\x58\x4d\x31\xc9\x41\x89\xc1\x6a\x01\x5f\x48\xb9\x75\x6d\x70\x21\xa0\xaa
+\xaa\x0a\x51\x48\xb9\x0a\x48\x69\x79\x61\x2c\x20\x47\x51\x48\x31\xdb\x48\x31\xc9\xb1
+\x0e\x66\x89\x1c\x0c\x48\x89\xe6\x6a\x0c\x5a\x0f\x05\x6a\x01\x58\x51\x41\x5a\x0f\x05" ;
+
+int main(int argc, char **argv) 
+{
+    void *ptr = mmap(0, sizeof(shellcode),PROT_EXEC | PROT_WRITE | PROT_READ, MAP_ANON | MAP_PRIVATE, -1, 0);
+    if(ptr == MAP_FAILED)
+    {
+      handle_error("mmap");
+    }
+    memcpy(ptr, shellcode, sizeof(shellcode));
+    sc = ptr;
+    sc();
+    return 0;
+}
+</span>
+
+Test it:
+
+<span style="color:#FFCC00">
+root@wrenchy:/home/testish # gcc ship_it.c -o ship_it
+root@wrenchy:/home/testish # ./ship_it
+
+Hiya, Gump!
+</span>
+
+
+...and that's a wrap for today!
+
+Don't forget to check the links below! ^^
+
+===========================
+
+<i>To be read:</i>
+
+[Gump on Linux - 32 &64bit]
+https://jnc0x24dd099bb870.tumblr.com/Network/TCP/Sock5
+
+[where all the kewl kidz are at]
+https://www.freebsd.org
+
+[PLT and GOT]
+https://www.technovelty.org/linux/plt-and-got-the-key-to-code-sharing-and-dynamic-libraries.html
+
+[GDB - Continuing and Stepping]
+https://sourceware.org/gdb/onlinedocs/gdb/Continuing-and-Stepping.html
+
+-------EOF---------
+
+
+
+</pre>
+<!---->
+    </td>
+   </tr>
+  </table>
+</div>
+</div>
+
+</body>
+</html>
